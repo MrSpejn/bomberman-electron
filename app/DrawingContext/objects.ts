@@ -1,5 +1,6 @@
 import { Animation } from './animation';
-
+import { Element } from '../Game';
+import { DrawingContext } from '.';
 
 let images = {
 
@@ -54,58 +55,75 @@ export function initObjects():Promise<any> {
 }
 
 export abstract class CanvasElement {
-  abstract render(context: CanvasRenderingContext2D, state?: Object): void;
   image: HTMLImageElement;
+  origin: Element;
   offsetX: number;
   offsetY: number;
 
-  constructor(offsetX: number, offsetY: number) {
+  constructor(offsetX: number = 0, offsetY: number = 0) {
     this.offsetX = offsetX;
     this.offsetY = offsetY;
   }
+
+  setOriginElement(origin) {
+    this.origin = origin;
+  }
+
+  getPosition() {
+    if (!this.origin) {
+      return {
+        x: this.offsetX,
+        y: this.offsetY,
+      };
+    }
+
+    const {
+      positionX: offsetX,
+      positionY: offsetY,
+    } = this.origin.getPosition();
+    return {
+      x: offsetX + this.offsetX - 40,
+      y: offsetY + this.offsetX - 40,
+    };
+  }
+  abstract render(context: DrawingContext, state?: Object): void
 }
 
-export abstract class StaticCanvasElement extends CanvasElement {
-  abstract render(context: CanvasRenderingContext2D, state?: Object): void;
 
-}
-
-export abstract class AnimableCanvasElement extends CanvasElement {
-  abstract render(context: CanvasRenderingContext2D, state?: Object): void;
-
-}
-
-export class Grass extends StaticCanvasElement {
-  constructor(offsetX: number, offsetY: number) {
+export class Grass extends CanvasElement {
+  constructor(offsetX:number, offsetY:number) {
     super(offsetX, offsetY);
     this.image = images.grass;
   }
-  render(context: CanvasRenderingContext2D) {
-    context.drawImage(this.image, this.offsetX, this.offsetY, 160, 160);
+  render(context: DrawingContext) {
+    const position = this.getPosition();
+    context.drawImage(this.image, position.x, position.y, 160, 160);
   }
 }
 
-export class StoneWall extends StaticCanvasElement {
-  constructor(offsetX: number, offsetY: number) {
+export class StoneWall extends CanvasElement {
+  constructor(offsetX:number, offsetY:number) {
     super(offsetX, offsetY);
     this.image = images.stone_wall;
   }
-  render(context: CanvasRenderingContext2D) {
-    context.drawImage(this.image, this.offsetX, this.offsetY, 80, 80);
+  render(context: DrawingContext) {
+    const position = this.getPosition();
+    context.drawImage(this.image, position.x, position.y, 80, 80);
   }
 }
 
-export class Crate extends StaticCanvasElement {
-  constructor(offsetX: number, offsetY: number) {
+export class Crate extends CanvasElement {
+  constructor(offsetX:number, offsetY:number) {
     super(offsetX, offsetY);
     this.image = images.crate;
   }
-  render(context: CanvasRenderingContext2D) {
-    context.drawImage(this.image, this.offsetX, this.offsetY, 80, 80);
+  render(context: DrawingContext) {
+    const position = this.getPosition();
+    context.drawImage(this.image, position.x, position.y, 80, 80);
   }
 }
 
-class Character extends AnimableCanvasElement {
+class Character extends CanvasElement {
   spriteX: number;
   spriteY: number;
   step: number;
@@ -115,8 +133,8 @@ class Character extends AnimableCanvasElement {
   isStatic: boolean;
   size: number;
 
-  constructor(offsetX: number, offsetY: number, animationDuration: number) {
-    super(offsetX, offsetY - 40);
+  constructor(offsetX:number, offsetY:number, animationDuration: number) {
+    super(offsetX, offsetY-40);
     this.size = 80;
     this.spriteX = 64;
     this.spriteY = 0;
@@ -154,44 +172,46 @@ class Character extends AnimableCanvasElement {
 
   }
 
-  render(context: CanvasRenderingContext2D, state: { currentFrame: number }) {
+  render(context: DrawingContext, state: { currentFrame: number }) {
+    const position = this.getPosition();
     if (this.isStatic) {
-      return context.drawImage(this.image, 0, this.spriteY, 64, 64, this.offsetX, this.offsetY, this.size, this.size);
+      return context.drawImage(this.image, 0, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
     }
     this.animationCounter = this.animationCounter + 1;
     const stage = Math.ceil((this.animationCounter % this.duration) / this.step);
     this.spriteX = stage * 64;
-    context.drawImage(this.image, this.spriteX, this.spriteY, 64, 64, this.offsetX, this.offsetY, this.size, this.size);
+    context.drawImage(this.image, this.spriteX, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
   }
 }
 
 export class Professor extends Character {
-  constructor(offsetX: number, offsetY: number, animationDuration: number) {
-    super(offsetX - 10, offsetY - 10, animationDuration);
+  constructor(animationDuration: number) {
+    super(-10, -10, animationDuration);
     this.size = 100;
     this.image = images.professor;
   }
+  setGra
 }
 
 export class Orkin extends Character {
-  constructor(offsetX: number, offsetY: number, animationDuration: number) {
-    super(offsetX - 20, offsetY - 20, animationDuration);
+  constructor(animationDuration: number) {
+    super(-20, -20, animationDuration);
     this.image = images.orkin;
     this.size = 120;
   }
 }
 
 export class Monk extends Character {
-  constructor(offsetX: number, offsetY: number, animationDuration: number) {
-    super(offsetX - 10, offsetY - 10, animationDuration);
+  constructor(animationDuration: number) {
+    super(-10, -10, animationDuration);
     this.size = 100;
     this.image = images.monk;
   }
 }
 
 export class Knight extends Character {
-  constructor(offsetX: number, offsetY: number, animationDuration: number) {
-    super(offsetX - 10, offsetY - 10, animationDuration);
+  constructor(animationDuration: number) {
+    super(-10, -10, animationDuration);
     this.size = 100;
     this.image = images.knight;
   }
@@ -200,12 +220,12 @@ export class Knight extends Character {
 
 
 
-export class Bomb extends AnimableCanvasElement {
+export class Bomb extends CanvasElement {
   spriteX: number;
   spriteY: number;
   animation: Animation;
-  constructor(offsetX: number, offsetY: number) {
-    super(offsetX - 10, offsetY - 10);
+  constructor() {
+    super(-10, -10);
     this.image = images.bomb;
     this.spriteX = Math.floor(Math.random() * 3) * 80;
     this.animation = new Animation({
@@ -243,17 +263,18 @@ export class Bomb extends AnimableCanvasElement {
     });
   }
 
-  render(context: CanvasRenderingContext2D, state: { currentFrame: number }) {
+  render(context: DrawingContext, state: { currentFrame: number }) {
     let offsetX, offsetY;
+    const position = this.getPosition();
 
     if (!this.animation.playing) {
       this.animation.startAnimation(state.currentFrame);
-      offsetX = this.offsetX;
-      offsetY = this.offsetY;
+      offsetX = position.x;
+      offsetY = position.y;
     } else {
       const props = this.animation.animate(state.currentFrame, {
-        offsetX: this.offsetX,
-        offsetY: this.offsetY,
+        offsetX: position.x,
+        offsetY: position.y,
       });
       offsetX = props.offsetX;
       offsetY = props.offsetY;
@@ -263,8 +284,8 @@ export class Bomb extends AnimableCanvasElement {
   }
 }
 
-class Player extends AnimableCanvasElement {
-  render(context: CanvasRenderingContext2D, state: Object) {
+class Player extends CanvasElement {
+  render(context: DrawingContext, state: Object) {
 
   }
 }

@@ -2,11 +2,9 @@ import * as path from 'path';
 import * as electron from 'electron';
 import * as range from 'lodash.range';
 
-import * as network from './network';
-
 import './style.scss';
-import { Renderer } from './CanvasRenderer';
+import { Bomberman } from './Bomberman';
 
-const renderer = new Renderer();
+const bomberman = new Bomberman();
 
-renderer.start();
+bomberman.start();
