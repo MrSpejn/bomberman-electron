@@ -1,10 +1,22 @@
+import { autorun } from 'mobx';
+
 import { Animation } from './animation';
 import { Element } from '../Game';
 import { DrawingContext } from '.';
 
-let images = {
 
-};
+interface Images {
+  grass?: HTMLImageElement;
+  crate?: HTMLImageElement;
+  stone_wall?: HTMLImageElement;
+  bomb?: HTMLImageElement;
+  professor?: HTMLImageElement;
+  orkin?: HTMLImageElement;
+  monk?: HTMLImageElement;
+  knight?: HTMLImageElement;
+}
+
+let images: Images = {};
 
 export function initObjects():Promise<any> {
   const bomb = new Image(240, 320);
@@ -59,6 +71,7 @@ export abstract class CanvasElement {
   origin: Element;
   offsetX: number;
   offsetY: number;
+  size: number;
 
   constructor(offsetX: number = 0, offsetY: number = 0) {
     this.offsetX = offsetX;
@@ -83,7 +96,7 @@ export abstract class CanvasElement {
     } = this.origin.getPosition();
     return {
       x: offsetX + this.offsetX - 40,
-      y: offsetY + this.offsetX - 40,
+      y: offsetY + this.offsetY - 40,
     };
   }
   abstract render(context: DrawingContext, state?: Object): void
@@ -134,7 +147,7 @@ class Character extends CanvasElement {
   size: number;
 
   constructor(offsetX:number, offsetY:number, animationDuration: number) {
-    super(offsetX, offsetY-40);
+    super(offsetX, offsetY - 40);
     this.size = 80;
     this.spriteX = 64;
     this.spriteY = 0;
@@ -142,18 +155,13 @@ class Character extends CanvasElement {
     this.duration = animationDuration;
     this.animationCounter = 0;
     this.isStatic = true;
+  }
 
-    const random = Math.floor(Math.random() * 4) + 4;
-    switch(random) {
-      case 0: this.changeAnimation('stay_back'); break;
-      case 1: this.changeAnimation('stay_left'); break;
-      case 2: this.changeAnimation('stay_front'); break;
-      case 3: this.changeAnimation('stay_right'); break;
-      case 4: this.changeAnimation('walk_back'); break;
-      case 5: this.changeAnimation('walk_left'); break;
-      case 6: this.changeAnimation('walk_front'); break;
-      default: this.changeAnimation('walk_right');
-    }
+  setOriginElement(origin) {
+    this.origin = origin;
+    autorun(() => {
+      this.changeAnimation(origin.state.animation);
+    });
   }
 
   changeAnimation(animation:string) {

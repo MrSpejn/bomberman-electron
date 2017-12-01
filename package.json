@@ -11,7 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lodash.range": "^3.2.0"
+    "lodash.range": "^3.2.0",
+    "mobx": "^3.3.2"
   },
   "devDependencies": {
     "@types/electron": "^1.6.10",
