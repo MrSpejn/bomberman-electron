@@ -11,6 +11,7 @@ import {
 } from '../DrawingContext/objects';
 import { DrawingContext } from '../DrawingContext';
 import { CanvasElement } from '../DrawingContext/objects';
+import { CanvasObjectProvider } from '../Bomberman';
 
 interface Renderable {
   graphicalRepresentation: CanvasElement,
@@ -23,18 +24,20 @@ import * as range from 'lodash.range';
 
 export class Renderer {
   canRender: Promise<any>;
+  objectProvider: CanvasObjectProvider;
   context: DrawingContext;
   currentFrame: number = 0;
   layers: Layer[] = [[],[],[],[]];
   fieldSize: number;
-  renderables: Renderable[];
+  renderables: Renderable[][];
   width: number;
   height: number;
   scrollX: number = 0;
   scrollY: number = 0;
 
-  constructor(context: CanvasRenderingContext2D, fieldSize: number) {
+  constructor(context: CanvasRenderingContext2D, fieldSize: number, objectProvider: CanvasObjectProvider) {
     this.canRender = initObjects();
+    this.objectProvider = objectProvider;
     this.context = new DrawingContext(context);
     this.fieldSize = fieldSize;
   }
@@ -48,9 +51,12 @@ export class Renderer {
     }));
     this.context.scrollX -= 80;
     this.context.scrollY -= 80;
-    this.renderables.forEach(r => {
+    this.renderables.forEach(layer => layer.forEach(r => {
+      if (!r.graphicalRepresentation) {
+        this.objectProvider.getObjectForElement(r);
+      }
       r.graphicalRepresentation.render(this.context, { currentFrame: this.currentFrame });
-    });
+    }));
     this.context.scrollX += 80;
     this.context.scrollY += 80;
 

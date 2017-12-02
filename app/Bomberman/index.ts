@@ -11,29 +11,7 @@ const config = {
   fieldSize: 80,
 };
 
-// const ;
-
-// const speed = 10;
-// if (keyPressed.ArrowUp && !keyPressed.ArrowDown) {
-//   if (this.context.scrollY - speed < 0) this.context.scrollY = 0;
-//   else this.context.scrollY -= speed;
-// }
-// else if (keyPressed.ArrowDown && !keyPressed.ArrowUp) {
-//   if (this.context.scrollY + speed > this.height - window.innerHeight) this.context.scrollY = this.height - window.innerHeight;
-//   else this.context.scrollY += speed;
-// }
-// if (keyPressed.ArrowLeft && !keyPressed.ArrowRight) {
-//   if (this.context.scrollX - speed < 0) this.context.scrollX = 0;
-//   else this.context.scrollX -= speed;
-// }
-// else if (keyPressed.ArrowRight && !keyPressed.ArrowLeft) {
-//   if (this.context.scrollX + speed > this.width - window.innerWidth) this.context.scrollX = this.width - window.innerWidth;
-//   else this.context.scrollX += speed;
-// }
-
-
-
-class CanvasObjectProvider {
+export class CanvasObjectProvider {
   getObjectForElement(element: Game.Element) {
     let representation = null;
     if (element instanceof Game.Wall) representation = new GraphicsObjects.StoneWall(0, 0);
@@ -115,10 +93,9 @@ export class Bomberman {
     this.game = new Game.Game(stage0, config.fieldSize);
 
 
-    this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize);
+    this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
-    this.game.elements.forEach(e => objectProvider.getObjectForElement(e));
-    this.renderer.setElements(this.game.elements);
+    this.renderer.setElements([this.game.elements, this.game.players]);
 
     const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
     centerer.setMainPlaya(this.game.getLocalPlayer());

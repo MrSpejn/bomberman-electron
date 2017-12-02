@@ -14,8 +14,9 @@ export class LocallyControlled {
   };
   lastClicked: string;
 
-  constructor(player: Player, x: number, y: number) {
+  constructor(player: Player, x: number, y: number, game: Game) {
     this.player = player;
+    this.game = game;
     player.positionX = x;
     player.positionY = y;
 
@@ -29,6 +30,13 @@ export class LocallyControlled {
     document.addEventListener('keyup', (event) => {
       if (KEYS.includes(event.key)) {
         this.keyPressed[event.key] = false;
+      }
+    });
+
+    document.addEventListener('keypress', (event) => {
+      console.log(event.key);
+      if (event.key === ' ') {
+        this.game.placeBomb(this.player.positionX, this.player.positionY);
       }
     });
   }
@@ -45,11 +53,10 @@ export class LocallyControlled {
     const halfSize = size / 2;
 
     const cells = [
-      map[cellY][cellX],
-      cellX < map[0].length-1 && map[cellY][cellX+1],
-      cellY < map.length-1 && map[cellY+1][cellX],
-      cellY > 0 && map[cellY-1][cellX],
-      cellX > 0 && map[cellY][cellX-1],
+      dx >= 0 && cellX < map[0].length-1 && map[cellY][cellX+1],
+      dy >= 0 && cellY < map.length-1 && map[cellY+1][cellX],
+      dy <= 0 && cellY > 0 && map[cellY-1][cellX],
+      dx <= 0 && cellX > 0 && map[cellY][cellX-1],
     ]
     const filled = cells.filter(cell => cell && cell.getInsertedElement());
 
