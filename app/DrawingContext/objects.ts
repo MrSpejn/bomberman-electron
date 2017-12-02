@@ -182,7 +182,7 @@ export class Fire extends CanvasElement {
       unit,
       unit,
       unit,
-      animationDuration - 13*unit,
+      animationDuration - 5*unit,
       unit,
       unit,
       unit,

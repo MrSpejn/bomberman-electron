@@ -152,13 +152,15 @@ export class Bomb extends Element {
 }
 
 export class Fire extends Element {
-  activeTime: number = 1500;
-  timeout: number = 1900;
+  activeTime: number = 1100;
+  timeout: number = 1500;
   start: number;
+
   constructor() {
     super();
     this.start = (new Date).getTime();
   }
+
   isOver() {
     return ((new Date).getTime() - this.start) > this.timeout;
   }
