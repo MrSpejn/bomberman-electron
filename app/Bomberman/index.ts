@@ -18,14 +18,16 @@ export class CanvasObjectProvider {
     else if (element instanceof Game.Bomb) representation = new GraphicsObjects.Bomb();
     else if (element instanceof Game.Player) {
       switch (element.character) {
-        case 'orkin': representation = new GraphicsObjects.Orkin(45); break;
-        case 'knight': representation = new GraphicsObjects.Knight(45); break;
-        case 'monk': representation = new GraphicsObjects.Monk(45); break;
-        case 'professor': representation = new GraphicsObjects.Professor(45); break;
+        case 'orkin': representation = new GraphicsObjects.Orkin(750); break;
+        case 'knight': representation = new GraphicsObjects.Knight(750); break;
+        case 'monk': representation = new GraphicsObjects.Monk(750); break;
+        case 'professor': representation = new GraphicsObjects.Professor(750); break;
       }
     }
     else if (element instanceof Game.Crate) representation = new GraphicsObjects.Crate(0, 0);
-    else if (element instanceof Game.Fire) representation = null;
+    else if (element instanceof Game.Debris) representation = new GraphicsObjects.DestroyedCrate(0, 0);
+
+    else if (element instanceof Game.Fire) representation = new GraphicsObjects.Fire(0, 0, (<Game.Fire>element).activeTime);
     else {
       throw 'Unknown game element';
     }
@@ -95,7 +97,7 @@ export class Bomberman {
 
     this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
-    this.renderer.setElements([this.game.elements, this.game.players]);
+    this.renderer.setElements([this.game.elements, this.game.bombs, this.game.fires, this.game.debris, this.game.players]);
 
     const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
     centerer.setMainPlaya(this.game.getLocalPlayer());
@@ -112,8 +114,9 @@ export class Bomberman {
 
     const animationFrame = () => {
       const end = new Date();
-      this.game.update(end.getTime() - start.getTime());
-      this.renderer.render();
+      const timeDiff = end.getTime() - start.getTime();
+      this.game.update(timeDiff);
+      this.renderer.render(end.getTime(), timeDiff);
       requestAnimationFrame(animationFrame);
       start = end;
     }

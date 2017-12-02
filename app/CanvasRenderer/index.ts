@@ -42,12 +42,12 @@ export class Renderer {
     this.fieldSize = fieldSize;
   }
 
-  render() {
+  render(currentTime: number, timeDiff: number) {
     this.context.scrollX = this.scrollX;
     this.context.scrollY = this.scrollY;
     this.context.clear();
     this.layers.forEach(objects => objects && objects.forEach(object => {
-      object.render(this.context, { currentFrame: this.currentFrame });
+      object.render(this.context, { currentTime, timeDiff });
     }));
     this.context.scrollX -= 80;
     this.context.scrollY -= 80;
@@ -55,7 +55,7 @@ export class Renderer {
       if (!r.graphicalRepresentation) {
         this.objectProvider.getObjectForElement(r);
       }
-      r.graphicalRepresentation.render(this.context, { currentFrame: this.currentFrame });
+      r.graphicalRepresentation.render(this.context, { currentTime, timeDiff });
     }));
     this.context.scrollX += 80;
     this.context.scrollY += 80;
@@ -80,7 +80,7 @@ export class Renderer {
     ]
   }
 
-  setElements(renderables: Renderable[]) {
+  setElements(renderables: Renderable[][]) {
     this.renderables = renderables;
   }
 }

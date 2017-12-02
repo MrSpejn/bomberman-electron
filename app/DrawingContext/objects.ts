@@ -8,12 +8,14 @@ import { DrawingContext } from '.';
 interface Images {
   grass?: HTMLImageElement;
   crate?: HTMLImageElement;
+  destroyed_crate?: HTMLImageElement;
   stone_wall?: HTMLImageElement;
   bomb?: HTMLImageElement;
   professor?: HTMLImageElement;
   orkin?: HTMLImageElement;
   monk?: HTMLImageElement;
   knight?: HTMLImageElement;
+  fire?: HTMLImageElement;
 }
 
 let images: Images = {};
@@ -43,6 +45,12 @@ export function initObjects():Promise<any> {
   const knight = new Image(576, 256);
   knight.src = '../images/knight.png';
 
+  const fire = new Image(512, 512);
+  fire.src = '../images/explosion.png';
+
+  const destroyed_crate = new Image(120, 120);
+  destroyed_crate.src = '../images/debris.png';
+
   images = {
     grass,
     crate,
@@ -52,6 +60,8 @@ export function initObjects():Promise<any> {
     orkin,
     monk,
     knight,
+    fire,
+    destroyed_crate,
   }
 
   return Promise.all([
@@ -63,6 +73,7 @@ export function initObjects():Promise<any> {
     (resolve) => orkin.onload = () => resolve(),
     (resolve) => monk.onload = () => resolve(),
     (resolve) => knight.onload = () => resolve(),
+    (resolve) => fire.onload = () => resolve(),
   ]);
 }
 
@@ -125,6 +136,17 @@ export class StoneWall extends CanvasElement {
   }
 }
 
+export class DestroyedCrate extends CanvasElement {
+  constructor(offsetX:number, offsetY:number) {
+    super(offsetX, offsetY);
+    this.image = images.destroyed_crate;
+  }
+  render(context: DrawingContext) {
+    const position = this.getPosition();
+    context.drawImage(this.image, position.x - 20, position.y - 20, 120, 120);
+  }
+}
+
 export class Crate extends CanvasElement {
   constructor(offsetX:number, offsetY:number) {
     super(offsetX, offsetY);
@@ -133,6 +155,73 @@ export class Crate extends CanvasElement {
   render(context: DrawingContext) {
     const position = this.getPosition();
     context.drawImage(this.image, position.x, position.y, 80, 80);
+  }
+}
+
+
+export class Fire extends CanvasElement {
+  spriteX: number;
+  spriteY: number;
+  steps: number[];
+  animationCounter: number;
+  animationStart: number;
+  duration: number;
+  size: number;
+  state: number;
+
+  constructor(offsetX:number, offsetY:number, animationDuration: number) {
+    super(offsetX, offsetY);
+    this.image = images.fire;
+    this.size = 120;
+    this.spriteX = 0;
+    this.spriteY = 0;
+    this.state = 0;
+    const unit = 50;
+    this.steps = [
+      unit,
+      unit,
+      unit,
+      unit,
+      animationDuration - 13*unit,
+      unit,
+      unit,
+      unit,
+      unit,
+      unit,
+      unit,
+      unit,
+      unit,
+      unit,
+    ];
+    this.duration = animationDuration + 9 * unit;
+    this.animationCounter = 0;
+  }
+
+  newState() {
+    let sum = 0;
+    for (let i = 0; i < this.steps.length; i++) {
+      sum += this.steps[i];
+      if (this.animationCounter < sum) {
+        return i;
+      }
+    }
+  }
+  nextStep() {
+    this.animationCounter = this.animationCounter % this.duration;
+    const state = this.newState();
+    if (state === this.state) return;
+    else {
+      this.spriteY = 128 * Math.floor(state / 4);
+      this.spriteX = 128 * (state % 4);
+    }
+  }
+
+  render(context: DrawingContext, state: { timeDiff: number }) {
+    const position = this.getPosition();
+    this.animationCounter = this.animationCounter + state.timeDiff;
+    this.nextStep();
+    return context.drawImage(this.image, this.spriteX, this.spriteY, 128, 128, position.x - 20, position.y - 20, this.size, this.size);
+
   }
 }
 
@@ -180,12 +269,12 @@ class Character extends CanvasElement {
 
   }
 
-  render(context: DrawingContext, state: { currentFrame: number }) {
+  render(context: DrawingContext, state: { timeDiff: number }) {
     const position = this.getPosition();
     if (this.isStatic) {
       return context.drawImage(this.image, 0, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
     }
-    this.animationCounter = this.animationCounter + 1;
+    this.animationCounter = this.animationCounter + state.timeDiff;
     const stage = Math.ceil((this.animationCounter % this.duration) / this.step);
     this.spriteX = stage * 64;
     context.drawImage(this.image, this.spriteX, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
@@ -198,7 +287,6 @@ export class Professor extends Character {
     this.size = 100;
     this.image = images.professor;
   }
-  setGra
 }
 
 export class Orkin extends Character {
@@ -237,7 +325,7 @@ export class Bomb extends CanvasElement {
     this.image = images.bomb;
     this.spriteX = Math.floor(Math.random() * 3) * 80;
     this.animation = new Animation({
-      duration: 3000 / 60,
+      duration: 3000,
       frames: [
         {
           breakpoint: 0,
@@ -271,16 +359,16 @@ export class Bomb extends CanvasElement {
     });
   }
 
-  render(context: DrawingContext, state: { currentFrame: number }) {
+  render(context: DrawingContext, state: { currentTime: number }) {
     let offsetX, offsetY;
     const position = this.getPosition();
 
     if (!this.animation.playing) {
-      this.animation.startAnimation(state.currentFrame);
+      this.animation.startAnimation(state.currentTime);
       offsetX = position.x;
       offsetY = position.y;
     } else {
-      const props = this.animation.animate(state.currentFrame, {
+      const props = this.animation.animate(state.currentTime, {
         offsetX: position.x,
         offsetY: position.y,
       });

@@ -16,7 +16,7 @@ type AnimationDescriptor = {
 export class Animation {
   duration: number;
   frames: KeyFrame[];
-  startFrame: number;
+  startTime: number;
   playing: boolean;
 
   constructor(animation: AnimationDescriptor) {
@@ -24,13 +24,13 @@ export class Animation {
     this.frames = animation.frames;
   }
 
-  startAnimation(startFrame: number) {
-    this.startFrame = startFrame;
+  startAnimation(startTime: number) {
+    this.startTime = startTime;
     this.playing = true;
   }
 
-  animate(currentFrame: number, properties: PropTypes): PropTypes {
-    const timePassed = currentFrame - this.startFrame;
+  animate(nowTime: number, properties: PropTypes): PropTypes {
+    const timePassed = nowTime - this.startTime;
     const animationPercentage = (timePassed % this.duration) / this.duration * 100;
     const result = {};
     const diffs = getProperties(this.frames, animationPercentage);
