@@ -3,6 +3,7 @@ import {
   Wall,
   Crate,
 } from './Element';
+import { Player } from './Player';
 
 export class Cell {
   row: number;
@@ -27,13 +28,26 @@ export class Cell {
   getInsertedElement(): Element {
     return this.insertedElement;
   }
+
+  playerEnter(player: Player) {
+    if (!this.insertedElement) return;
+    else this.insertedElement.playerContact(player);
+  }
+  playerLeave(player: Player) {
+    if (!this.insertedElement) return;
+    else this.insertedElement.playerLostContact(player);
+  }
+
+  isCollideable() {
+    return this.insertedElement ? this.insertedElement.isCollideable() : false;
+  }
 }
 
 export function getElementInCell(type: number):Element {
   switch(type) {
     case 0: return null;
     case 1: return new Wall();
-    //case 2: return new Crate();
+    case 2: return new Crate();
     default: return null;
   }
 }

@@ -1,6 +1,7 @@
 import { Game } from '.';
 import { Player } from './Player';
 import { Cell } from './Cell';
+import { Bomb } from './Element';
 
 const KEYS = ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'];
 export class LocallyControlled {
@@ -14,8 +15,9 @@ export class LocallyControlled {
   };
   lastClicked: string;
 
-  constructor(player: Player, x: number, y: number) {
+  constructor(player: Player, x: number, y: number, game: Game) {
     this.player = player;
+    this.game = game;
     player.positionX = x;
     player.positionY = y;
 
@@ -29,6 +31,13 @@ export class LocallyControlled {
     document.addEventListener('keyup', (event) => {
       if (KEYS.includes(event.key)) {
         this.keyPressed[event.key] = false;
+      }
+    });
+
+    document.addEventListener('keypress', (event) => {
+      console.log(event.key);
+      if (event.key === ' ') {
+        this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
       }
     });
   }
@@ -46,24 +55,39 @@ export class LocallyControlled {
 
     const cells = [
       map[cellY][cellX],
-      cellX < map[0].length-1 && map[cellY][cellX+1],
-      cellY < map.length-1 && map[cellY+1][cellX],
-      cellY > 0 && map[cellY-1][cellX],
-      cellX > 0 && map[cellY][cellX-1],
+      dx >= 0 && cellX < map[0].length-1 && map[cellY][cellX+1],
+      dy >= 0 && cellY < map.length-1 && map[cellY+1][cellX],
+      dy <= 0 && cellY > 0 && map[cellY-1][cellX],
+      dx <= 0 && cellX > 0 && map[cellY][cellX-1],
     ]
-    const filled = cells.filter(cell => cell && cell.getInsertedElement());
+    const filled = cells.filter(cell => cell && cell.isCollideable());
 
     if (!filled.some(cell => {
+      const marginH = marginHor;
+      const marginV = marginVer;
+
+      if (cell.getInsertedElement().allowPlayer(this.player)) {
+        return false;
+      }
       return ((
-        cell.centerX + halfSize + marginHor >= x &&
-        cell.centerX - halfSize - marginHor <= x
+        cell.centerX + halfSize + marginH >= x &&
+        cell.centerX - halfSize - marginH <= x
       ) && (
-        cell.centerY + halfSize + marginVer >= y &&
-        cell.centerY - halfSize - marginVer <= y
+        cell.centerY + halfSize + marginV >= y &&
+        cell.centerY - halfSize - marginV <= y
       ));
     })) {
+      const pcX = Math.floor(this.player.positionX / size);
+      const pcY = Math.floor(this.player.positionY / size);
       this.player.positionX = x;
       this.player.positionY = y;
+      if (pcX !== cellX || pcY !== cellY) {
+        const pCell = map[pcY][pcX];
+        const nCell = map[cellX][cellY];
+        pCell.playerLeave(this.player);
+        nCell.playerEnter(this.player);
+      }
+
     }
   }
 

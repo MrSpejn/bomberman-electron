@@ -12,6 +12,7 @@ module.exports = {
     extensions: ['.js', '.ts'],
   },
   devtool: 'source-map',
+  target: 'electron',
   module: {
     rules: [{
       test: /\.ts?$/,
