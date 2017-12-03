@@ -1,106 +1,46 @@
-import { Player } from '../Game';
-import { autorun } from 'mobx';
-
-import * as GraphicsObjects from '../DrawingContext/objects';
+import { connect } from 'http2';
+import { Character } from '../Game/Player';
 import { Renderer as CanvasRenderer } from '../CanvasRenderer';
-import * as Game from '../Game';
+import { CanvasObjectProvider } from '../CanvasRenderer/CanvasObjectProvider';
+import { Centerer } from './Centerer';
+import {
+  Game,
+  Player,
+  LocallyControlled,
+  RemotelyControlled,
+  Character,
+ } from '../Game';
 import { stage0 } from '../stages';
+import { Connection } from '../Network';
 
 
 const config = {
   fieldSize: 80,
 };
 
-export class CanvasObjectProvider {
-  getObjectForElement(element: Game.Element) {
-    let representation = null;
-    if (element instanceof Game.Wall) representation = new GraphicsObjects.StoneWall(0, 0);
-    else if (element instanceof Game.Bomb) representation = new GraphicsObjects.Bomb();
-    else if (element instanceof Game.Player) {
-      switch (element.character) {
-        case 'orkin': representation = new GraphicsObjects.Orkin(750); break;
-        case 'knight': representation = new GraphicsObjects.Knight(750); break;
-        case 'monk': representation = new GraphicsObjects.Monk(750); break;
-        case 'professor': representation = new GraphicsObjects.Professor(750); break;
-      }
-    }
-    else if (element instanceof Game.Crate) representation = new GraphicsObjects.Crate(0, 0);
-    else if (element instanceof Game.Debris) representation = new GraphicsObjects.DestroyedCrate(0, 0);
-
-    else if (element instanceof Game.Fire) representation = new GraphicsObjects.Fire(0, 0, (<Game.Fire>element).activeTime);
-    else {
-      throw 'Unknown game element';
-    }
-    representation.setOriginElement(element);
-    element.setGraphicalRepresentation(representation);
-  }
-}
-
-class Centerer {
-  width: number;
-  height: number;
-  renderer: CanvasRenderer;
-  playa: Player;
-
-  constructor(width, height, renderer) {
-    this.width = width;
-    this.height = height;
-    this.renderer = renderer;
-  }
-
-  centerOnPlayer() {
-    const screenHeight = window.innerHeight;
-    const screenWidth = window.innerWidth;
-
-    let x;
-    let y;
-
-    const posX = this.playa.positionX + 80;
-    const posY = this.playa.positionY + 80;
-
-    if (posX < screenHeight / 2) {
-      x = 0;
-    } else if (posX > (this.height - screenHeight / 2)) {
-      x = this.height - screenHeight;
-    } else {
-      x = posX - screenHeight / 2;
-    }
-
-    if (posY < screenWidth / 2) {
-      y = 0;
-    } else if (posY > (this.width - screenWidth / 2)) {
-      y = this.width - screenWidth;
-    } else {
-      y = posY - screenWidth / 2;
-    }
-
-    this.renderer.scrollX = x;
-    this.renderer.scrollY = y;
-  }
-
-  setMainPlaya(playa: Player) {
-    this.playa = playa;
-    autorun(() => {
-      this.centerOnPlayer();
-    });
-  }
-}
 export class Bomberman {
+  local: LocallyControlled;
   renderer: CanvasRenderer;
-  game: Game.Game;
+  game: Game;
 
-  constructor() {
+  constructor(connection: Connection) {
+
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
-    this.game = new Game.Game(stage0, config.fieldSize);
 
+    const localPlayer = new Player(1, Character.ORKIN);
+    const remotePlayer = new Player(2, Character.KNIGHT);
+    this.game = new Game(stage0, config.fieldSize);
+    this.local = new LocallyControlled(localPlayer, 500, 500, this.game, connection);
+    const remote = new RemotelyControlled(remotePlayer, 500, 580, this.game, connection);
+    this.game.setPlayers([localPlayer, remotePlayer]);
 
     this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
     this.renderer.setElements([this.game.elements, this.game.bombs, this.game.fires, this.game.debris, this.game.players]);
 
     const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
-    centerer.setMainPlaya(this.game.getLocalPlayer());
+    centerer.setMainPlaya(localPlayer);
   }
 
   start() {
@@ -116,6 +56,7 @@ export class Bomberman {
       const end = new Date();
       const timeDiff = end.getTime() - start.getTime();
       this.game.update(timeDiff);
+      this.local.update(timeDiff);
       this.renderer.render(end.getTime(), timeDiff);
       requestAnimationFrame(animationFrame);
       start = end;

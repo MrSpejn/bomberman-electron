@@ -11,7 +11,7 @@ import {
 } from '../DrawingContext/objects';
 import { DrawingContext } from '../DrawingContext';
 import { CanvasElement } from '../DrawingContext/objects';
-import { CanvasObjectProvider } from '../Bomberman';
+import { CanvasObjectProvider } from './CanvasObjectProvider';
 
 interface Renderable {
   graphicalRepresentation: CanvasElement,

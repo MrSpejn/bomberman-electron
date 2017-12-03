@@ -1,3 +1,4 @@
+import { setInterval } from 'timers';
 import { Position } from 'webpack-sources/node_modules/source-map';
 import * as process from 'process';
 import * as dgram from 'dgram';
@@ -19,24 +20,31 @@ enum Incoming {
   MAP = 'MAP',
   PLAYERS = 'PLAYERS',
   BOMBS = 'BOMBS',
+  ACK = 'ACK',
+  RES_JOIN = 'RES_JOIN',
+  PENDING_GAME_STATE = 'PENDING_GAME_STATE',
+  GAME_START = 'GAME_START',
 };
 
-enum Outgoing {
+export enum Outgoing {
   PING = 'PING',
   MOVE = 'MOVE',
   BOMB = 'BOMB',
-}
+  REQ_JOIN = 'REQ_JOIN',
+  ACK  = 'ACK',
+};
 
 
 const INCOMING_CODES: Array<[Incoming, number]> = [
-  [Incoming.PING, 0x77],
+  [Incoming.PING, 0x76],
   [Incoming.MAP, 0x12],
-  [Incoming.PLAYERS, 0x41],
+  [Incoming.PLAYERS, 0x40],
   [Incoming.BOMBS, 0x84],
+  [Incoming.ACK, 0x31],
 ];
 
 const OUTGOING_CODES = {
-  [Outgoing.PING]: 0x77,
+  [Outgoing.PING]: 0x70,
   [Outgoing.BOMB]: 0x24,
   [Outgoing.MOVE]: 0x18,
 };
@@ -107,13 +115,13 @@ export class MessageSerializer {
       case Outgoing.PING:
         return this.serializePing(<Date> args[0]);
       case Outgoing.BOMB:
-        return this.serializeBomb(<Position> args[0]);
+        return this.serializeBomb(<number> args[0], <Position> args[1]);
       case Outgoing.MOVE:
-        return this.serializeMove(<Position> args[0]);
+        return this.serializeMove(<number> args[0], <Position> args[1]);
     }
   }
 
-  serializeMove(position: Position) {
+  serializeMove(playerId: number, position: Position) {
     const buffer = Buffer.alloc(9);
     buffer.writeUInt8(OUTGOING_CODES[Outgoing.MOVE], 0);
     buffer.writeUInt32LE(position.x, 1);
@@ -121,7 +129,7 @@ export class MessageSerializer {
     return buffer;
   }
 
-  serializeBomb(position: Position) {
+  serializeBomb(playerId: number, position: Position) {
     const buffer = Buffer.alloc(9);
     buffer.writeUInt8(OUTGOING_CODES[Outgoing.BOMB], 0);
     buffer.writeUInt32LE(position.x, 1);
@@ -178,5 +186,15 @@ export class Connection {
 
   dispatch(action: Outgoing, ...args) {
     this.send(this.serializer.serialize(action, ...args));
+  }
+
+  dispatchAcknowledge(action: Outgoing, messageId: number, ...args) {
+    const message = this.serializer.serialize(action, messageId, ...args);
+    this.acknowledgeQueue = [{
+      id: messageId,
+      interval: setInterval(() => {
+        this.send(this.serializer.serialize),
+      }, 100),
+    }]
   }
 }

@@ -10,12 +10,13 @@ import {
   Debris,
 } from './Element';
 import { Player } from './Player';
-import { LocallyControlled } from './LocallyControlled';
 
 
 export * from './Cell';
 export * from './Element';
 export * from './Player';
+export * from './LocallyControlled';
+export * from './RemotelyControlled';
 
 export class Game {
   map: Cell[][];
@@ -24,13 +25,9 @@ export class Game {
   bombs: Bomb[] = [];
   fires: Fire[] = [];
   debris: Debris[] = [];
-  local: LocallyControlled;
 
   constructor(stage, cellSize) {
     this.loadMap(stage, cellSize);
-    const localPlayer = new Player();
-    this.local = new LocallyControlled(localPlayer, 500, 500, this);
-    this.players.push(localPlayer);
   }
 
   getElements():Element[] {
@@ -39,6 +36,10 @@ export class Game {
 
   getPlayers():Player[] {
     return this.players;
+  }
+
+  setPlayers(players: Player[]) {
+    this.players = players;
   }
 
   loadMap(stage, cellSize) {
@@ -60,7 +61,6 @@ export class Game {
     this.checkBombs();
     this.checkFires();
     this.checkDebris();
-    this.local.update(timeDiff, this);
   }
 
   checkBombs() {
@@ -97,11 +97,12 @@ export class Game {
 
     const bomb = new Bomb([player]);
     if (this.map[crow][ccol].getInsertedElement()) {
-      return;
+      return false;
     }
     bomb.setCell(this.map[crow][ccol]);
     this.bombs.push(bomb);
     this.map[crow][ccol].insertElement(bomb);
+    return true;
   }
 
   removeBomb(bomb: Bomb) {
@@ -146,9 +147,5 @@ export class Game {
     fire.setCell(cell);
     this.fires.push(fire);
     cell.insertElement(fire);
-  }
-
-  getLocalPlayer() {
-    return this.local.player;
   }
 }

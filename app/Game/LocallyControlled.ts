@@ -1,3 +1,7 @@
+import {
+  Connection,
+  Outgoing,
+} from '../Network';
 import { Game } from '.';
 import { Player } from './Player';
 import { Cell } from './Cell';
@@ -14,12 +18,14 @@ export class LocallyControlled {
     ArrowRight: false,
   };
   lastClicked: string;
+  connection: Connection;
 
-  constructor(player: Player, x: number, y: number, game: Game) {
+  constructor(player: Player, x: number, y: number, game: Game, connection: Connection) {
     this.player = player;
     this.game = game;
     player.positionX = x;
     player.positionY = y;
+    this.connection = connection;
 
     document.addEventListener('keydown', (event) => {
       if (KEYS.includes(event.key)) {
@@ -35,9 +41,11 @@ export class LocallyControlled {
     });
 
     document.addEventListener('keypress', (event) => {
-      console.log(event.key);
       if (event.key === ' ') {
-        this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
+        const success = this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
+        if (success) {
+          this.connection.dispatch(Outgoing.BOMB, this.player.id, { x, y });
+        }
       }
     });
   }
@@ -81,6 +89,9 @@ export class LocallyControlled {
       const pcY = Math.floor(this.player.positionY / size);
       this.player.positionX = x;
       this.player.positionY = y;
+
+      this.connection.dispatch(Outgoing.MOVE, this.player.id, { x, y });
+
       if (pcX !== cellX || pcY !== cellY) {
         const pCell = map[pcY][pcX];
         const nCell = map[cellX][cellY];
@@ -145,7 +156,7 @@ export class LocallyControlled {
     }
   }
 
-  update(timeDiff: number, game: Game) {
+  update(timeDiff: number) {
     const direction = this.keyPressed[this.lastClicked] ? this.lastClicked : KEYS.find(key => this.keyPressed[key]);
     if (!direction) {
       const [activity, prevDir] = this.player.state.animation.split('_');
@@ -155,23 +166,23 @@ export class LocallyControlled {
       switch (a) {
         case 'down': {
           this.player.state.animation = 'walk_front';
-          this.updatePosition(0, timeDiff / 1000 * 200, game.map);
+          this.updatePosition(0, timeDiff / 1000 * 200, this.game.map);
           break;
         }
         case 'up': {
           this.player.state.animation = 'walk_back';
-          this.updatePosition(0, -1 * timeDiff / 1000 * 200, game.map);
+          this.updatePosition(0, -1 * timeDiff / 1000 * 200, this.game.map);
           break;
         }
         case 'left': {
           this.player.state.animation = 'walk_left';
-          this.updatePosition(-1 * timeDiff / 1000 * 200, 0, game.map);
+          this.updatePosition(-1 * timeDiff / 1000 * 200, 0, this.game.map);
 
           break;
         }
         case 'right': {
           this.player.state.animation = 'walk_right';
-          this.updatePosition(timeDiff / 1000 * 200, 0, game.map);
+          this.updatePosition(timeDiff / 1000 * 200, 0, this.game.map);
           break;
         }
       }
