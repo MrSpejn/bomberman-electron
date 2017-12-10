@@ -1,8 +1,9 @@
+import { Renderable } from './';
 import * as GraphicsObjects from '../DrawingContext/objects';
 import * as Game from '../Game';
 
 export class CanvasObjectProvider {
-  getObjectForElement(element: Game.Element) {
+  getObjectForElement(element: Renderable) {
     let representation = null;
     if (element instanceof Game.Wall) representation = new GraphicsObjects.StoneWall(0, 0);
     else if (element instanceof Game.Bomb) representation = new GraphicsObjects.Bomb();

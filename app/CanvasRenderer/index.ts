@@ -13,7 +13,7 @@ import { DrawingContext } from '../DrawingContext';
 import { CanvasElement } from '../DrawingContext/objects';
 import { CanvasObjectProvider } from './CanvasObjectProvider';
 
-interface Renderable {
+export interface Renderable {
   graphicalRepresentation: CanvasElement,
 }
 type Layer = CanvasElement[];
@@ -51,12 +51,29 @@ export class Renderer {
     }));
     this.context.scrollX -= 80;
     this.context.scrollY -= 80;
-    this.renderables.forEach(layer => layer.forEach(r => {
-      if (!r.graphicalRepresentation) {
-        this.objectProvider.getObjectForElement(r);
+    this.renderables.forEach((layer, idx) => {
+
+      if (idx == 4) {
+        layer.forEach(r => {
+          if (!r.graphicalRepresentation) {
+            this.objectProvider.getObjectForElement(r);
+          }
+        });
+        layer.sort((a, b) => {
+          return a.graphicalRepresentation.getPosition().y - b.graphicalRepresentation.getPosition().y;
+        });
+        layer.forEach(r => {
+          r.graphicalRepresentation.render(this.context, { currentTime, timeDiff });
+        });
+        return;
       }
-      r.graphicalRepresentation.render(this.context, { currentTime, timeDiff });
-    }));
+      layer.forEach(r => {
+        if (!r.graphicalRepresentation) {
+          this.objectProvider.getObjectForElement(r);
+        }
+        r.graphicalRepresentation.render(this.context, { currentTime, timeDiff });
+      });
+    });
     this.context.scrollX += 80;
     this.context.scrollY += 80;
 
