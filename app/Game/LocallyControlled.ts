@@ -113,6 +113,13 @@ export class LocallyControlled {
       this.player.positionX = x;
       this.player.positionY = y;
 
+      if (pcX !== cellX || pcY !== cellY) {
+        const pCell = map[pcY][pcX];
+        const nCell = map[cellX][cellY];
+        pCell.playerLeave(this.player);
+        nCell.playerEnter(this.player);
+      }
+
       this.connection.dispatch(Outgoing.MOVE, this.player.id, { x: dx, y: dy });
 
 

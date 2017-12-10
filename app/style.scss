@@ -1,6 +1,8 @@
 body {
   margin: 0;
   height: 0;
+}
+#root {
   position: relative;
   background-color: #222;
   width: 100vw;
@@ -10,7 +12,6 @@ body {
   position: absolute;
   top: 50px;
   left: 0;
-  z-index: -1;
   cursor: none;
 }
 .stats {
@@ -21,7 +22,7 @@ body {
   z-index: 3;
   background-color: #444;
 }
-.app-bar {
+.header {
   height: 50px;
   background-color: #444;
 }
@@ -39,41 +40,8 @@ body {
     color: #fff;
     font-size: 20px;
   }
-  &__title {
-
-  }
-  &__input-group {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  &__input-label {
-    margin-right: 15px;
-  }
-  &__input {
-    border: none;
-    width: 100%;
-    display: block;
-    padding-left: 5px;
-    font-size: 18px;
-    line-height: 1.5em;
-    height: 1.5em;
-  }
-  &__submit-group {
-    display: flex;
-    margin-top: 15px;
-    justify-content: flex-end;
-  }
-  &__submit {
-    border: none;
-    background-color: #333;
-    color: #f1f1f1;
-    font-size: 18px;
-    height: 1.5em;
-    line-height: 1.2em;
-    cursor: pointer;
-  }
 }
+
 .ping-box {
   font-size: 20px;
   font-weight: 700;

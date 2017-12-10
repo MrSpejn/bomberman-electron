@@ -2,20 +2,20 @@ const path = require('path');
 const webpack = require('webpack');
 
 module.exports = {
-  entry: './app/app.ts',
+  entry: './app/app.tsx',
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js',
     publicPath: '/',
   },
   resolve: {
-    extensions: ['.js', '.ts'],
+    extensions: ['.js', '.ts', '.tsx'],
   },
   devtool: 'source-map',
   target: 'electron',
   module: {
     rules: [{
-      test: /\.ts?$/,
+      test: /\.(ts|tsx)?$/,
       use: 'ts-loader',
     }, {
       test: /\.(css|scss)$/,
@@ -28,7 +28,9 @@ module.exports = {
       }],
     }, {
       test: /\.(svg|jpg|png)$/,
-      exclude: /(node_modules)/,
+      use: 'file-loader',
+    }, {
+      test: /\.(woff|woff2|ttf|eot)$/,
       use: 'file-loader',
     },
     {test: /webpack-dev-server\\client/, loader: "null-loader"},

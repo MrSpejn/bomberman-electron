@@ -4,9 +4,10 @@
     "module": "es6",
     "moduleResolution": "node",
     "target": "es5",
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "jsx": "react"
   },
   "files": [
-    "app/app.ts"
+    "app/app.tsx"
   ]
 }

@@ -83,10 +83,18 @@ export class MessageNotifier {
 
   playerParser(message: Buffer) {
     const asd = message.toString('utf-8');
-    const dick = asd.split('|')[2].split(',');
-    const x = dick[dick.length-2];
-    const y = dick[dick.length-1];
-    return { x: parseInt(x), y: parseInt(y) };
+    const players = asd.split('|').slice(1);
+    return players.map(player => {
+      const params = player.split(',');
+      return {
+        id: params[0],
+        lifes: params[1],
+        isAlive: params[2],
+        availableBombs: params[3],
+        x: params[4],
+        y: params[5],
+      };
+    });
   }
 
   bombParser(message: Buffer) {
@@ -107,9 +115,6 @@ export class MessageNotifier {
       }
       case Incoming.PLAYERS: {
         return this.notify('player', this.playerParser(message));
-        // players.forEach((player) => {
-        //   this.notify('player', player);
-        // });
       }
       case Incoming.BOMBS: {
         this.notify('bombs', this.bombParser(message));
@@ -133,7 +138,6 @@ export class MessageSerializer {
 
   serializeMove(playerId: number, position: Position) {
     const buffer = Buffer.alloc(25);
-    //console.log(`bm:${Math.floor(position.x)}|${Math.floor(position.y)}`);
 
     buffer.write('bm', 0);
     buffer.writeInt32LE(Math.floor(position.x), 2);
@@ -173,7 +177,6 @@ export class Connection {
   connectingInterval: NodeJS.Timer = null;
 
   constructor(address: string, port: number) {
-    console.log(`Openning connection to ${address}:${port}`);
     this.port = port;
     this.address = address;
     this.client = dgram.createSocket('udp4');
@@ -185,6 +188,7 @@ export class Connection {
 
 
     this.client.on('message', (message) => {
+      console.log('message', message.toString('utf-8'));
       if (!this.connecting && !this.connected) {
         return;
       }
@@ -204,7 +208,7 @@ export class Connection {
       if (!action) return;
 
       this.notifier.process(action[0], message);
-      this.timeout = <NodeJS.Timer>setTimeout(() => {
+      this.timeout = setTimeout(() => {
         this.notifier.notify('disconnect');
       }, 3000);
     });
@@ -214,19 +218,25 @@ export class Connection {
   }
 
   connect(connectionMessage) {
+    console.log(`Openning connection to ${this.address}:${this.port}`);
     this.connecting = true;
 
     const connectFn = () => {
       const buffer = Buffer.from('pr5:Tomke', 'utf-8');
       this.send(buffer);
     };
-
+    connectFn();
     this.connectingInterval = setInterval(connectFn, 100);
 
     setInterval(() => {
       this.dispatch(Outgoing.PING, new Date());
     }, 250);
+
+    this.timeout = setTimeout(() => {
+      this.notifier.notify('disconnect');
+    }, 3000);
   }
+
   send(message:Buffer) {
     console.log('Dispatch', message.toString('utf-8'));
     this.client.send(message, this.port, this.address);
