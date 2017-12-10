@@ -127,6 +127,9 @@ export class Bomb extends Element {
       (<Bomb> inserted).explode(game);
     } else if (inserted instanceof Crate) {
       game.destroyCrate(<Crate> inserted);
+    } else if (inserted instanceof Fire && (<Fire> inserted).isInactive()) {
+      game.removeFire(<Fire> inserted);
+      game.placeFire(cell);
     }
     return false;
   }
@@ -163,6 +166,9 @@ export class Fire extends Element {
 
   isOver() {
     return ((new Date).getTime() - this.start) > this.timeout;
+  }
+  isInactive() {
+    return ((new Date).getTime() - this.start) > this.activeTime;
   }
 }
 

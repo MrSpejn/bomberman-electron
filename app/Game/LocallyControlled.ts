@@ -44,10 +44,33 @@ export class LocallyControlled {
       if (event.key === ' ') {
         const success = this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
         if (success) {
-          this.connection.dispatch(Outgoing.BOMB, this.player.id, { x, y });
+          this.connection.dispatch(Outgoing.BOMB, this.player.id, {
+            x: success.getCell().col,
+            y: success.getCell().row,
+          });
         }
       }
     });
+  }
+
+  setPosition(x, y, map) {
+    const size = map[0][0].cellSize;
+
+    const pcX = Math.floor(this.player.positionX / size);
+    const pcY = Math.floor(this.player.positionY / size);
+
+    const cellX = Math.floor(x / size);
+    const cellY = Math.floor(y / size);
+
+    this.player.positionX = x;
+    this.player.positionY = y;
+
+    if (pcX !== cellX || pcY !== cellY) {
+      const pCell = map[pcY][pcX];
+      const nCell = map[cellX][cellY];
+      pCell.playerLeave(this.player);
+      nCell.playerEnter(this.player);
+    }
   }
 
   updatePositionStandard(dx, dy, map: Cell[][]) {
@@ -90,14 +113,9 @@ export class LocallyControlled {
       this.player.positionX = x;
       this.player.positionY = y;
 
-      this.connection.dispatch(Outgoing.MOVE, this.player.id, { x, y });
+      this.connection.dispatch(Outgoing.MOVE, this.player.id, { x: dx, y: dy });
 
-      if (pcX !== cellX || pcY !== cellY) {
-        const pCell = map[pcY][pcX];
-        const nCell = map[cellX][cellY];
-        pCell.playerLeave(this.player);
-        nCell.playerEnter(this.player);
-      }
+
 
     }
   }

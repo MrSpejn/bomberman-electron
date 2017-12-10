@@ -96,13 +96,17 @@ export class Game {
     const ccol = Math.floor(posX / size);
 
     const bomb = new Bomb([player]);
-    if (this.map[crow][ccol].getInsertedElement()) {
+    const inserted = this.map[crow][ccol].getInsertedElement();
+    if (inserted && !(inserted instanceof Fire)) {
+      return false;
+    }
+    if (inserted && inserted instanceof Fire && !(<Fire> inserted).isInactive()) {
       return false;
     }
     bomb.setCell(this.map[crow][ccol]);
     this.bombs.push(bomb);
     this.map[crow][ccol].insertElement(bomb);
-    return true;
+    return bomb;
   }
 
   removeBomb(bomb: Bomb) {

@@ -1,8 +1,13 @@
-import { setInterval } from 'timers';
-import { Position } from 'webpack-sources/node_modules/source-map';
+import {
+  setTimeout,
+  clearTimeout,
+  clearInterval,
+  setInterval,
+} from 'timers';
+
 import * as process from 'process';
 import * as dgram from 'dgram';
-
+import throttle from 'lodash.throttle';
 interface Types {
   PING: string,
   MAP: string,
@@ -35,12 +40,12 @@ export enum Outgoing {
 };
 
 
-const INCOMING_CODES: Array<[Incoming, number]> = [
-  [Incoming.PING, 0x76],
-  [Incoming.MAP, 0x12],
-  [Incoming.PLAYERS, 0x40],
-  [Incoming.BOMBS, 0x84],
-  [Incoming.ACK, 0x31],
+const INCOMING_CODES: Array<[Incoming, String]> = [
+  [Incoming.PING, 'pi'],
+  [Incoming.MAP, 'ad'],
+  [Incoming.PLAYERS, 'p:'],
+  [Incoming.BOMBS, 'ad'],
+  [Incoming.ACK, 'ad'],
 ];
 
 const OUTGOING_CODES = {
@@ -71,13 +76,17 @@ export class MessageNotifier {
   }
 
   pingParser(message: Buffer) {
-    const length = message.readUInt8(1);
-    const date = parseInt(message.toString('utf-8', 2, length + 2));
+    const length = message.readUInt8(2);
+    const date = parseInt(message.toString('utf-8', 3, length + 3));
     return (new Date).getTime() - date;
   }
 
   playerParser(message: Buffer) {
-    return [];
+    const asd = message.toString('utf-8');
+    const dick = asd.split('|')[2].split(',');
+    const x = dick[dick.length-2];
+    const y = dick[dick.length-1];
+    return { x: parseInt(x), y: parseInt(y) };
   }
 
   bombParser(message: Buffer) {
@@ -91,19 +100,20 @@ export class MessageNotifier {
   process(action: Incoming, message: Buffer) {
     switch(action) {
       case Incoming.PING: {
-        this.notify('ping', this.pingParser(message));
+        return this.notify('ping', this.pingParser(message));
       }
       case Incoming.MAP: {
-        this.notify('map', this.mapParser(message));
+        return this.notify('map', this.mapParser(message));
       }
       case Incoming.PLAYERS: {
-        const players = this.playerParser(message);
-        players.forEach((player) => {
-          this.notify('player', player);
-        });
+        return this.notify('player', this.playerParser(message));
+        // players.forEach((player) => {
+        //   this.notify('player', player);
+        // });
       }
       case Incoming.BOMBS: {
         this.notify('bombs', this.bombParser(message));
+        return;
       }
     }
   }
@@ -122,27 +132,30 @@ export class MessageSerializer {
   }
 
   serializeMove(playerId: number, position: Position) {
-    const buffer = Buffer.alloc(9);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.MOVE], 0);
-    buffer.writeUInt32LE(position.x, 1);
-    buffer.writeUInt32LE(position.y, 5);
+    const buffer = Buffer.alloc(25);
+    //console.log(`bm:${Math.floor(position.x)}|${Math.floor(position.y)}`);
+
+    buffer.write('bm', 0);
+    buffer.writeInt32LE(Math.floor(position.x), 2);
+    buffer.writeInt32LE(Math.floor(position.y), 6);
+    buffer.write('Tomke', 10);
     return buffer;
   }
 
   serializeBomb(playerId: number, position: Position) {
-    const buffer = Buffer.alloc(9);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.BOMB], 0);
-    buffer.writeUInt32LE(position.x, 1);
-    buffer.writeUInt32LE(position.y, 5);
+    const buffer = Buffer.alloc(10);
+    buffer.write('as', 0);
+    buffer.writeUInt32LE(position.x, 2);
+    buffer.writeUInt32LE(position.y, 6);
     return buffer;
   }
 
   serializePing(date: Date) {
     const buffer = Buffer.alloc(20);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.PING], 0);
+    buffer.write('pi', 0);
     const timestamp = date.getTime().toString();
-    buffer.writeUInt8(timestamp.length, 1);
-    buffer.write(timestamp, 2);
+    buffer.writeUInt8(timestamp.length, 2);
+    buffer.write(timestamp, 3);
     return buffer;
   }
 }
@@ -154,6 +167,10 @@ export class Connection {
   address: string;
   port: number;
   ping: number = 0;
+  connected: boolean = false;
+  connecting: boolean = false;
+  timeout: NodeJS.Timer = null;
+  connectingInterval: NodeJS.Timer = null;
 
   constructor(address: string, port: number) {
     console.log(`Openning connection to ${address}:${port}`);
@@ -163,20 +180,55 @@ export class Connection {
     this.notifier = new MessageNotifier();
     this.serializer = new MessageSerializer();
 
+
+
+
+
     this.client.on('message', (message) => {
-      const type = message.readUInt8(0);
+      if (!this.connecting && !this.connected) {
+        return;
+      }
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+        this.timeout = null;
+      }
+      if (this.connecting) {
+        this.connected = true;
+        this.connecting = false;
+        clearInterval(this.connectingInterval);
+        this.notifier.notify('connect');
+      }
+
+      const type = message.toString('utf-8', 0, 2);
       const action = INCOMING_CODES.find(([key, code]) => type === code);
       if (!action) return;
 
-      this.notifier.process(action[0], message)
+      this.notifier.process(action[0], message);
+      this.timeout = <NodeJS.Timer>setTimeout(() => {
+        this.notifier.notify('disconnect');
+      }, 3000);
     });
+
+
+
+  }
+
+  connect(connectionMessage) {
+    this.connecting = true;
+
+    const connectFn = () => {
+      const buffer = Buffer.from('pr5:Tomke', 'utf-8');
+      this.send(buffer);
+    };
+
+    this.connectingInterval = setInterval(connectFn, 100);
 
     setInterval(() => {
       this.dispatch(Outgoing.PING, new Date());
-    }, 100);
-
+    }, 250);
   }
-  send(message) {
+  send(message:Buffer) {
+    console.log('Dispatch', message.toString('utf-8'));
     this.client.send(message, this.port, this.address);
   }
 
@@ -188,13 +240,4 @@ export class Connection {
     this.send(this.serializer.serialize(action, ...args));
   }
 
-  dispatchAcknowledge(action: Outgoing, messageId: number, ...args) {
-    const message = this.serializer.serialize(action, messageId, ...args);
-    this.acknowledgeQueue = [{
-      id: messageId,
-      interval: setInterval(() => {
-        this.send(this.serializer.serialize),
-      }, 100),
-    }]
-  }
 }

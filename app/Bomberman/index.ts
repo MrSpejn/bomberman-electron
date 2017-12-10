@@ -1,5 +1,4 @@
 import { connect } from 'http2';
-import { Character } from '../Game/Player';
 import { Renderer as CanvasRenderer } from '../CanvasRenderer';
 import { CanvasObjectProvider } from '../CanvasRenderer/CanvasObjectProvider';
 import { Centerer } from './Centerer';
@@ -41,6 +40,11 @@ export class Bomberman {
 
     const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
     centerer.setMainPlaya(localPlayer);
+
+    connection.on('player', (message) => {
+      console.log('PLAYER', message);
+      //this.local.setPosition(message.x, message.y, this.game.map);
+    });
   }
 
   start() {
