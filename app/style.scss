@@ -1,12 +1,127 @@
 body {
   margin: 0;
   height: 0;
+  position: relative;
+  background-color: #222;
+  width: 100vw;
+  height: 100vh;
 }
 #plain {
   position: absolute;
-  top: 0;
+  top: 50px;
   left: 0;
-  width: 100vw;
-  height: 100vh;
+  z-index: -1;
   cursor: none;
+}
+.stats {
+  position: absolute;
+  padding: 15px 30px 15px 35px;
+  top: 50px;
+  right: 0;
+  z-index: 3;
+  background-color: #444;
+}
+.app-bar {
+  height: 50px;
+  background-color: #444;
+}
+.dialog {
+  width: 400px;
+  padding: 0 50px 50px 50px;
+  position: absolute;
+  z-index: 100;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #444;
+
+  &__form {
+    color: #fff;
+    font-size: 20px;
+  }
+  &__title {
+
+  }
+  &__input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  &__input-label {
+    margin-right: 15px;
+  }
+  &__input {
+    border: none;
+    width: 100%;
+    display: block;
+    padding-left: 5px;
+    font-size: 18px;
+    line-height: 1.5em;
+    height: 1.5em;
+  }
+  &__submit-group {
+    display: flex;
+    margin-top: 15px;
+    justify-content: flex-end;
+  }
+  &__submit {
+    border: none;
+    background-color: #333;
+    color: #f1f1f1;
+    font-size: 18px;
+    height: 1.5em;
+    line-height: 1.2em;
+    cursor: pointer;
+  }
+}
+.ping-box {
+  font-size: 20px;
+  font-weight: 700;
+  color: red;
+  width: 100px;
+  height: 18px;
+  line-height: 18px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: calc(100% + 10px);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    background-color: red;
+  }
+
+  &--good {
+    color: green;
+    &::before {
+      background-color: green;
+    }
+  }
+  &--nice {
+    color: greenyellow;
+    &::before {
+      background-color: greenyellow;
+    }
+  }
+  &--medium {
+    color: yellow;
+    &::before {
+      background-color: yellow;
+    }
+  }
+  &--bad {
+    color: orange;
+    &::before {
+      background-color: orange;
+    }
+  }
+  &--critical {
+    color: orangered;
+    &::before {
+      background-color: orangered;
+    }
+  }
 }

@@ -7,11 +7,26 @@
     <title>Bombarman</title>
 </head>
 <body>
-    <canvas id="plain" width="1000" height="1000">
+    <div class="app-bar"></div>
+    <div class="stats">
+      <div class="ping-box">Disconnected</div>
+    </div>
+    <div class="dialog">
+      <form class="dialog__form" id="start">
+        <h3 class="dialog__title">Rozpocznij grę</h3>
+        <div class="dialog__input-group">
+          <label class="dialog__input-label">Nick:</label>
+          <input class="dialog__input" name="nick" />
+        </div>
+        <div class="dialog__submit-group">
+          <button class="dialog__submit" type="submit">Połącz</button>
+        </div>
+      </form>
+
+    </div>
+    <canvas id="plain" width="1000" height="950">
 
     </canvas>
-    <img id="source" src="https://orig00.deviantart.net/0f1a/f/2016/091/d/c/bomb_game_sprite_by_gintasdx-d9xbgks.png"
-    width="240" height="80">
     <script src="http://localhost:8081/index.js"></script>
 </body>
 </html>
