@@ -24,7 +24,14 @@ body {
 }
 .header {
   height: 50px;
+  padding: 0 16px;
   background-color: #444;
+
+  &__nick {
+    line-height: 50px;
+    margin: 0;
+    color: #fff;
+  }
 }
 .dialog {
   width: 400px;
@@ -106,8 +113,18 @@ body {
     padding: 0;
   }
 
-  &__player {
+  .player {
     font-size: 24px;
+    &__name {
+      text-align: center;
+      &--await {
+        color: orangered;
+      }
+    }
+    &__image {
+      display: block;
+      margin: 0 auto;
+    }
   }
 }
 
