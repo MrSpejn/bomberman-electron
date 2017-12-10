@@ -93,3 +93,23 @@ body {
     }
   }
 }
+
+.dashboard {
+  width: 700px;
+  margin: 100px auto 0;
+  color: #fff;
+
+  &__players {
+    list-style: none;
+    display: flex;
+    justify-content: space-around;
+    padding: 0;
+  }
+
+  &__player {
+    font-size: 24px;
+  }
+}
+
+.player {
+}

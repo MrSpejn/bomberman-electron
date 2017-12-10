@@ -9,6 +9,7 @@ import {
   Header,
   Stats,
   Plain,
+  Dashboard,
 } from './';
 import { AppStore } from '../Store';
 
@@ -18,6 +19,8 @@ export interface props {
 
 export interface state {
   nick: string,
+  dashboard: boolean,
+  game: boolean,
 }
 
 @inject('appStore')
@@ -28,6 +31,8 @@ export class Root extends React.Component<props, state> {
 
     this.state = {
       nick: '',
+      dashboard: false,
+      game: false,
     };
 
     this.onJoinRequest = this.onJoinRequest.bind(this);
@@ -36,11 +41,21 @@ export class Root extends React.Component<props, state> {
   onJoinRequest({ nick }) {
     this.setState({ nick }, () => {
       this.props.appStore.connection.connect(`pr${nick.length}:${nick}`);
+      this.props.appStore.connection.on('connect', () => {
+        this.setState({ dashboard: true });
+      });
+      this.props.appStore.connection.on('game_status', (status) => {
+        if (!this.state.game && status.started) {
+          this.setState({
+            dashboard: false,
+            game: true,
+          });
+        }
+      });
     });
   }
 
   render() {
-    console.log(this.props.appStore);
     return (
       <div className="root">
         <Dialog
@@ -49,7 +64,8 @@ export class Root extends React.Component<props, state> {
         />
         <Header />
         <Stats />
-        <Plain />
+        {this.state.dashboard && <Dashboard />}
+        {this.state.game && <Plain />}
       </div>
     );
   }

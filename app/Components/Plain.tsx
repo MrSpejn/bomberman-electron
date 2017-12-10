@@ -18,11 +18,8 @@ export interface state {
 @observer
 export class Plain extends React.Component<props, state> {
   componentDidMount() {
-    const bomberman = new Bomberman(this.props.appStore.connection);
-    this.props.appStore.connection.on('connect', () => {
-      console.log('Bomberman!!!');
-      bomberman.start();
-    });
+    const bomberman = new Bomberman(this.props.appStore.connection, this.props.appStore.gameStatus);
+    bomberman.start();
   }
   render() {
     return (
