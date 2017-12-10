@@ -11,6 +11,7 @@ const KEYS = ['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'];
 export class LocallyControlled {
   player: Player;
   game: Game;
+  id: number;
   keyPressed = {
     ArrowDown: false,
     ArrowUp: false,
@@ -51,6 +52,18 @@ export class LocallyControlled {
         }
       }
     });
+
+    const handler = (players, time) => {
+      connection.off('players', handler);
+      const local = players.find(player => player.id === this.player.id);
+      if (local) {
+        player.positionX = local.x;
+        player.positionY = local.y;
+      }
+
+    }
+
+    connection.on('players', handler);
   }
 
   setPosition(x, y, map) {
@@ -191,23 +204,23 @@ export class LocallyControlled {
       switch (a) {
         case 'down': {
           this.player.state.animation = 'walk_front';
-          this.updatePosition(0, timeDiff / 1000 * 200, this.game.map);
+          this.updatePosition(0, Math.floor(timeDiff / 1000 * 200), this.game.map);
           break;
         }
         case 'up': {
           this.player.state.animation = 'walk_back';
-          this.updatePosition(0, -1 * timeDiff / 1000 * 200, this.game.map);
+          this.updatePosition(0, Math.floor(-1 * timeDiff / 1000 * 200), this.game.map);
           break;
         }
         case 'left': {
           this.player.state.animation = 'walk_left';
-          this.updatePosition(-1 * timeDiff / 1000 * 200, 0, this.game.map);
+          this.updatePosition(Math.floor(-1 * timeDiff / 1000 * 200), 0, this.game.map);
 
           break;
         }
         case 'right': {
           this.player.state.animation = 'walk_right';
-          this.updatePosition(timeDiff / 1000 * 200, 0, this.game.map);
+          this.updatePosition(Math.floor(timeDiff / 1000 * 200), 0, this.game.map);
           break;
         }
       }

@@ -17,22 +17,43 @@ const config = {
   fieldSize: 80,
 };
 
+export interface GameStatus {
+  players: {
+    id: number,
+    nick: string,
+  }[],
+  localId: number,
+}
+
+function idToCharacter(id) {
+  switch (id) {
+    case 1: return Character.PROFESSOR;
+    case 2: return Character.MONK;
+    case 3: return Character.KNIGHT;
+    case 4: return Character.ORKIN;
+  }
+}
 export class Bomberman {
   local: LocallyControlled;
   renderer: CanvasRenderer;
   game: Game;
 
-  constructor(connection: Connection) {
+  constructor(connection: Connection, status: GameStatus) {
 
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
 
-    const localPlayer = new Player(1, Character.ORKIN);
-    const remotePlayer = new Player(2, Character.KNIGHT);
     this.game = new Game(stage0, config.fieldSize);
-    this.local = new LocallyControlled(localPlayer, 500, 500, this.game, connection);
-    const remote = new RemotelyControlled(remotePlayer, 500, 580, this.game, connection);
-    this.game.setPlayers([localPlayer, remotePlayer]);
+    console.log(status.localId);
+    const localPlayer = new Player(status.localId, idToCharacter(status.localId));
+    this.local = new LocallyControlled(localPlayer, 0, 0, this.game, connection);
+    const remotes = status.players.filter(player => player.id !== status.localId).map(player => {
+      console.log('Remote', player.id);
+      const remotePlayer = new Player(player.id, idToCharacter(player.id));
+      new RemotelyControlled(remotePlayer, 0, 0, this.game, connection);
+      return remotePlayer;
+    });
+    this.game.setPlayers([localPlayer, ...remotes]);
 
     this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
@@ -40,11 +61,6 @@ export class Bomberman {
 
     const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
     centerer.setMainPlaya(localPlayer);
-
-    connection.on('player', (message) => {
-      console.log('PLAYER', message);
-      //this.local.setPosition(message.x, message.y, this.game.map);
-    });
   }
 
   start() {

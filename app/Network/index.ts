@@ -26,7 +26,7 @@ enum Incoming {
   PLAYERS = 'PLAYERS',
   BOMBS = 'BOMBS',
   ACK = 'ACK',
-  RES_JOIN = 'RES_JOIN',
+  JOIN_RES = 'JOIN_RES',
   PENDING_GAME_STATE = 'PENDING_GAME_STATE',
   GAME_START = 'GAME_START',
 };
@@ -41,6 +41,7 @@ export enum Outgoing {
 
 
 const INCOMING_CODES: Array<[Incoming, String]> = [
+  [Incoming.JOIN_RES, 'pl'],
   [Incoming.PING, 'pi'],
   [Incoming.MAP, 'ad'],
   [Incoming.PLAYERS, 'p:'],
@@ -60,18 +61,25 @@ const OUTGOING_CODES = {
 
 export class MessageNotifier {
   handlers = {};
+  counters = {};
 
-  on(event:string, handler: (any) => void) {
+  on(event:string, handler: (...any) => void) {
     if (this.handlers[event]) {
       this.handlers[event].push(handler);
     } else {
       this.handlers[event] = [handler];
     }
   }
-
-  notify(event, ...args) {
+  off(event: string, handler: (...any) => void) {
     if (this.handlers[event]) {
-      this.handlers[event].forEach(handler => handler(...args));
+      this.handlers[event] = this.handlers[event].filter(fn => fn !== handler);
+    }
+  }
+  notify(event, ...args) {
+    this.counters[event] = this.counters[event] ? this.counters[event] + 1 : 1;
+
+    if (this.handlers[event]) {
+      this.handlers[event].forEach(handler => handler(...args, this.counters[event]));
     }
   }
 
@@ -83,16 +91,17 @@ export class MessageNotifier {
 
   playerParser(message: Buffer) {
     const asd = message.toString('utf-8');
+    console.log('Message', asd);
     const players = asd.split('|').slice(1);
     return players.map(player => {
       const params = player.split(',');
       return {
-        id: params[0],
-        lifes: params[1],
-        isAlive: params[2],
-        availableBombs: params[3],
-        x: params[4],
-        y: params[5],
+        id: parseInt(params[0]),
+        lifes: parseInt(params[1]),
+        isAlive: parseInt(params[2]),
+        availableBombs: parseInt(params[3]),
+        y: parseInt(params[5]),
+        x: parseInt(params[4]),
       };
     });
   }
@@ -105,8 +114,30 @@ export class MessageNotifier {
 
   }
 
+  gameStatusParser(message: Buffer) {
+    const asText = message.toString('utf-8');
+    const gameStatus = {};
+    const [status, ...players] = asText.split('|');
+    const [allReady, localId] = status.split(',');
+    gameStatus.started = parseInt(allReady.split(':')[1]) == 0;
+    gameStatus.localId = parseInt(localId);
+    gameStatus.players = players.map(player => {
+      const [id, nick] = player.split(',');
+      return {
+        id: parseInt(id),
+        nick,
+        connected: nick.length > 0,
+      };
+    });
+    return gameStatus;
+  }
+
   process(action: Incoming, message: Buffer) {
     switch(action) {
+      case Incoming.JOIN_RES: {
+        if (!this.counters['connect']) this.notify('connect');
+        return this.notify('game_status', this.gameStatusParser(message));
+      }
       case Incoming.PING: {
         return this.notify('ping', this.pingParser(message));
       }
@@ -114,7 +145,7 @@ export class MessageNotifier {
         return this.notify('map', this.mapParser(message));
       }
       case Incoming.PLAYERS: {
-        return this.notify('player', this.playerParser(message));
+        return this.notify('players', this.playerParser(message));
       }
       case Incoming.BOMBS: {
         this.notify('bombs', this.bombParser(message));
@@ -139,16 +170,17 @@ export class MessageSerializer {
   serializeMove(playerId: number, position: Position) {
     const buffer = Buffer.alloc(25);
 
-    buffer.write('bm', 0);
+    buffer.write('mv', 0);
     buffer.writeInt32LE(Math.floor(position.x), 2);
     buffer.writeInt32LE(Math.floor(position.y), 6);
-    buffer.write('Tomke', 10);
+
+    console.log('mv', position.x, position.y);
     return buffer;
   }
 
   serializeBomb(playerId: number, position: Position) {
     const buffer = Buffer.alloc(10);
-    buffer.write('as', 0);
+    buffer.write('bm', 0);
     buffer.writeUInt32LE(position.x, 2);
     buffer.writeUInt32LE(position.y, 6);
     return buffer;
@@ -183,12 +215,19 @@ export class Connection {
     this.notifier = new MessageNotifier();
     this.serializer = new MessageSerializer();
 
-
+    this.notifier.on('connect', () => {
+      this.connected = true;
+      this.connecting = false;
+      clearInterval(this.connectingInterval);
+      setInterval(() => {
+        this.dispatch(Outgoing.PING, new Date());
+      }, 250);
+    });
 
 
 
     this.client.on('message', (message) => {
-      console.log('message', message.toString('utf-8'));
+      //console.log('message', message.toString('utf-8'));
       if (!this.connecting && !this.connected) {
         return;
       }
@@ -196,14 +235,9 @@ export class Connection {
         clearTimeout(this.timeout);
         this.timeout = null;
       }
-      if (this.connecting) {
-        this.connected = true;
-        this.connecting = false;
-        clearInterval(this.connectingInterval);
-        this.notifier.notify('connect');
-      }
 
       const type = message.toString('utf-8', 0, 2);
+
       const action = INCOMING_CODES.find(([key, code]) => type === code);
       if (!action) return;
 
@@ -222,15 +256,11 @@ export class Connection {
     this.connecting = true;
 
     const connectFn = () => {
-      const buffer = Buffer.from('pr5:Tomke', 'utf-8');
+      const buffer = Buffer.from(connectionMessage, 'utf-8');
       this.send(buffer);
     };
     connectFn();
     this.connectingInterval = setInterval(connectFn, 100);
-
-    setInterval(() => {
-      this.dispatch(Outgoing.PING, new Date());
-    }, 250);
 
     this.timeout = setTimeout(() => {
       this.notifier.notify('disconnect');
@@ -238,12 +268,15 @@ export class Connection {
   }
 
   send(message:Buffer) {
-    console.log('Dispatch', message.toString('utf-8'));
     this.client.send(message, this.port, this.address);
   }
 
-  on(event: string, handler: (any) => void) {
+  on(event: string, handler: (...any) => void) {
     this.notifier.on(event, handler);
+  }
+
+  off(event: string, handler: (...any) => void) {
+    this.notifier.off(event, handler);
   }
 
   dispatch(action: Outgoing, ...args) {
