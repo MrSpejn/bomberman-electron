@@ -17,6 +17,9 @@ export class AppStore {
     connection.on('ping', action((ping) => {
       this.ping = <number>ping;
     }));
+    connection.on('disconnect', action((ping) => {
+      this.ping = -1;
+    }));
     connection.on('game_status', action((status) => {
       this.gameStatus = status;
     }));
