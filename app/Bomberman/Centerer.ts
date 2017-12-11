@@ -15,8 +15,9 @@ export class Centerer {
   }
 
   centerOnPlayer() {
-    const screenHeight = window.innerHeight;
-    const screenWidth = window.innerWidth;
+    const canvas = this.renderer.context.context.canvas;
+    const screenHeight = canvas.height;
+    const screenWidth = canvas.width;
 
     let x;
     let y;
@@ -24,20 +25,20 @@ export class Centerer {
     const posX = this.playa.positionX + 80;
     const posY = this.playa.positionY + 80;
 
-    if (posX < screenHeight / 2) {
-      x = 0;
-    } else if (posX > (this.height - screenHeight / 2)) {
-      x = this.height - screenHeight;
+    if (posY < screenHeight / 2) {
+      y = 0;
+    } else if (posY > (this.height - screenHeight / 2)) {
+      y = this.height - screenHeight;
     } else {
-      x = posX - screenHeight / 2;
+      y = posY - screenHeight / 2;
     }
 
-    if (posY < screenWidth / 2) {
-      y = 0;
-    } else if (posY > (this.width - screenWidth / 2)) {
-      y = this.width - screenWidth;
+    if (posX < screenWidth / 2) {
+      x = 0;
+    } else if (posX > (this.width - screenWidth / 2)) {
+      x = this.width - screenWidth;
     } else {
-      y = posY - screenWidth / 2;
+      x = posX - screenWidth / 2;
     }
 
     this.renderer.scrollX = x;
