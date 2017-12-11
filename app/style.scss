@@ -2,11 +2,131 @@ body {
   margin: 0;
   height: 0;
 }
-#plain {
-  position: absolute;
-  top: 0;
-  left: 0;
+#root {
+  position: relative;
+  background-color: #222;
   width: 100vw;
   height: 100vh;
+}
+#plain {
+  position: absolute;
+  top: 50px;
+  left: 0;
   cursor: none;
+}
+.stats {
+  position: absolute;
+  padding: 15px 30px 15px 35px;
+  top: 50px;
+  right: 0;
+  z-index: 3;
+  background-color: #444;
+}
+.header {
+  height: 50px;
+  padding: 0 16px;
+  background-color: #444;
+
+  &__nick {
+    line-height: 50px;
+    margin: 0;
+    color: #fff;
+  }
+}
+.dialog {
+  width: 400px;
+  padding: 0 50px 50px 50px;
+  position: absolute;
+  z-index: 100;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #444;
+
+  &__form {
+    color: #fff;
+    font-size: 20px;
+  }
+}
+
+.ping-box {
+  font-size: 20px;
+  font-weight: 700;
+  color: red;
+  width: 100px;
+  height: 18px;
+  line-height: 18px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: calc(100% + 10px);
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    background-color: red;
+  }
+
+  &--good {
+    color: green;
+    &::before {
+      background-color: green;
+    }
+  }
+  &--nice {
+    color: greenyellow;
+    &::before {
+      background-color: greenyellow;
+    }
+  }
+  &--medium {
+    color: yellow;
+    &::before {
+      background-color: yellow;
+    }
+  }
+  &--bad {
+    color: orange;
+    &::before {
+      background-color: orange;
+    }
+  }
+  &--critical {
+    color: orangered;
+    &::before {
+      background-color: orangered;
+    }
+  }
+}
+
+.dashboard {
+  width: 700px;
+  margin: 100px auto 0;
+  color: #fff;
+
+  &__players {
+    list-style: none;
+    display: flex;
+    justify-content: space-around;
+    padding: 0;
+  }
+
+  .player {
+    font-size: 24px;
+    &__name {
+      text-align: center;
+      &--await {
+        color: orangered;
+      }
+    }
+    &__image {
+      display: block;
+      margin: 0 auto;
+    }
+  }
+}
+
+.player {
 }

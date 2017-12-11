@@ -1,7 +1,13 @@
-import { Position } from 'webpack-sources/node_modules/source-map';
+import {
+  setTimeout,
+  clearTimeout,
+  clearInterval,
+  setInterval,
+} from 'timers';
+
 import * as process from 'process';
 import * as dgram from 'dgram';
-
+import throttle from 'lodash.throttle';
 interface Types {
   PING: string,
   MAP: string,
@@ -19,24 +25,32 @@ enum Incoming {
   MAP = 'MAP',
   PLAYERS = 'PLAYERS',
   BOMBS = 'BOMBS',
+  ACK = 'ACK',
+  JOIN_RES = 'JOIN_RES',
+  PENDING_GAME_STATE = 'PENDING_GAME_STATE',
+  GAME_START = 'GAME_START',
 };
 
-enum Outgoing {
+export enum Outgoing {
   PING = 'PING',
   MOVE = 'MOVE',
   BOMB = 'BOMB',
-}
+  REQ_JOIN = 'REQ_JOIN',
+  ACK  = 'ACK',
+};
 
 
-const INCOMING_CODES: Array<[Incoming, number]> = [
-  [Incoming.PING, 0x77],
-  [Incoming.MAP, 0x12],
-  [Incoming.PLAYERS, 0x41],
-  [Incoming.BOMBS, 0x84],
+const INCOMING_CODES: Array<[Incoming, String]> = [
+  [Incoming.JOIN_RES, 'pl'],
+  [Incoming.PING, 'pi'],
+  [Incoming.MAP, 'ad'],
+  [Incoming.PLAYERS, 'p:'],
+  [Incoming.BOMBS, 'b:'],
+  [Incoming.ACK, 'ad'],
 ];
 
 const OUTGOING_CODES = {
-  [Outgoing.PING]: 0x77,
+  [Outgoing.PING]: 0x70,
   [Outgoing.BOMB]: 0x24,
   [Outgoing.MOVE]: 0x18,
 };
@@ -47,55 +61,106 @@ const OUTGOING_CODES = {
 
 export class MessageNotifier {
   handlers = {};
+  counters = {};
 
-  on(event:string, handler: (any) => void) {
+  on(event:string, handler: (...any) => void) {
     if (this.handlers[event]) {
       this.handlers[event].push(handler);
     } else {
       this.handlers[event] = [handler];
     }
   }
-
-  notify(event, ...args) {
+  off(event: string, handler: (...any) => void) {
     if (this.handlers[event]) {
-      this.handlers[event].forEach(handler => handler(...args));
+      this.handlers[event] = this.handlers[event].filter(fn => fn !== handler);
+    }
+  }
+  notify(event, ...args) {
+    this.counters[event] = this.counters[event] ? this.counters[event] + 1 : 1;
+
+    if (this.handlers[event]) {
+      this.handlers[event].forEach(handler => handler(...args, this.counters[event]));
     }
   }
 
   pingParser(message: Buffer) {
-    const length = message.readUInt8(1);
-    const date = parseInt(message.toString('utf-8', 2, length + 2));
+    const length = message.readUInt8(2);
+    const date = parseInt(message.toString('utf-8', 3, length + 3));
     return (new Date).getTime() - date;
   }
 
   playerParser(message: Buffer) {
-    return [];
+    const asd = message.toString('utf-8');
+    const players = asd.split('|').slice(1);
+    return players.map(player => {
+      const params = player.split(',');
+      return {
+        id: parseInt(params[0]),
+        lifes: parseInt(params[1]),
+        isAlive: parseInt(params[2]),
+        availableBombs: parseInt(params[3]),
+        y: parseInt(params[5]),
+        x: parseInt(params[4]),
+      };
+    });
   }
 
   bombParser(message: Buffer) {
-
+    const asText = message.toString('utf-8');
+    const bombsData = asText.split('|').slice(1, -1);
+    const bombs = bombsData.map(bombString => {
+      const params = bombString.split(',');
+      return {
+        position: parseInt(params[0]),
+        ownerId: parseInt(params[1]),
+        power: parseInt(params[2]),
+        duration: parseInt(params[3]),
+        timestamp: parseInt(params[4]),
+      };
+    });
+    return bombs;
   }
 
   mapParser(message: Buffer) {
 
   }
 
+  gameStatusParser(message: Buffer) {
+    const asText = message.toString('utf-8');
+    const gameStatus = {};
+    const [status, ...players] = asText.split('|');
+    const [allReady, localId] = status.split(',');
+    gameStatus.started = parseInt(allReady.split(':')[1]) == 0;
+    gameStatus.localId = parseInt(localId);
+    gameStatus.players = players.map(player => {
+      const [id, nick] = player.split(',');
+      return {
+        id: parseInt(id),
+        nick,
+        connected: nick.length > 0,
+      };
+    });
+    return gameStatus;
+  }
+
   process(action: Incoming, message: Buffer) {
     switch(action) {
+      case Incoming.JOIN_RES: {
+        if (!this.counters['connect']) this.notify('connect');
+        return this.notify('game_status', this.gameStatusParser(message));
+      }
       case Incoming.PING: {
-        this.notify('ping', this.pingParser(message));
+        return this.notify('ping', this.pingParser(message));
       }
       case Incoming.MAP: {
-        this.notify('map', this.mapParser(message));
+        return this.notify('map', this.mapParser(message));
       }
       case Incoming.PLAYERS: {
-        const players = this.playerParser(message);
-        players.forEach((player) => {
-          this.notify('player', player);
-        });
+        return this.notify('players', this.playerParser(message));
       }
       case Incoming.BOMBS: {
         this.notify('bombs', this.bombParser(message));
+        return;
       }
     }
   }
@@ -107,34 +172,36 @@ export class MessageSerializer {
       case Outgoing.PING:
         return this.serializePing(<Date> args[0]);
       case Outgoing.BOMB:
-        return this.serializeBomb(<Position> args[0]);
+        return this.serializeBomb(<number> args[0], <Position> args[1]);
       case Outgoing.MOVE:
-        return this.serializeMove(<Position> args[0]);
+        return this.serializeMove(<number> args[0], <Position> args[1]);
     }
   }
 
-  serializeMove(position: Position) {
-    const buffer = Buffer.alloc(9);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.MOVE], 0);
-    buffer.writeUInt32LE(position.x, 1);
-    buffer.writeUInt32LE(position.y, 5);
+  serializeMove(playerId: number, position: Position) {
+    const buffer = Buffer.alloc(25);
+
+    buffer.write('mv', 0);
+    buffer.writeInt32LE(Math.floor(position.x), 2);
+    buffer.writeInt32LE(Math.floor(position.y), 6);
+
     return buffer;
   }
 
-  serializeBomb(position: Position) {
-    const buffer = Buffer.alloc(9);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.BOMB], 0);
-    buffer.writeUInt32LE(position.x, 1);
-    buffer.writeUInt32LE(position.y, 5);
+  serializeBomb(playerId: number, position: Position) {
+    const buffer = Buffer.alloc(10);
+    buffer.write('bm', 0);
+    buffer.writeUInt32LE(position.x, 2);
+    buffer.writeUInt32LE(position.y, 6);
     return buffer;
   }
 
   serializePing(date: Date) {
     const buffer = Buffer.alloc(20);
-    buffer.writeUInt8(OUTGOING_CODES[Outgoing.PING], 0);
+    buffer.write('pi', 0);
     const timestamp = date.getTime().toString();
-    buffer.writeUInt8(timestamp.length, 1);
-    buffer.write(timestamp, 2);
+    buffer.writeUInt8(timestamp.length, 2);
+    buffer.write(timestamp, 3);
     return buffer;
   }
 }
@@ -146,37 +213,83 @@ export class Connection {
   address: string;
   port: number;
   ping: number = 0;
+  connected: boolean = false;
+  connecting: boolean = false;
+  timeout: NodeJS.Timer = null;
+  connectingInterval: NodeJS.Timer = null;
 
   constructor(address: string, port: number) {
-    console.log(`Openning connection to ${address}:${port}`);
     this.port = port;
     this.address = address;
     this.client = dgram.createSocket('udp4');
     this.notifier = new MessageNotifier();
     this.serializer = new MessageSerializer();
 
+    this.notifier.on('connect', () => {
+      this.connected = true;
+      this.connecting = false;
+      clearInterval(this.connectingInterval);
+      setInterval(() => {
+        this.dispatch(Outgoing.PING, new Date());
+      }, 250);
+    });
+
+
+
     this.client.on('message', (message) => {
-      const type = message.readUInt8(0);
+      if (!this.connecting && !this.connected) {
+        return;
+      }
+      if (this.timeout) {
+        clearTimeout(this.timeout);
+        this.timeout = null;
+      }
+
+      const type = message.toString('utf-8', 0, 2);
+
       const action = INCOMING_CODES.find(([key, code]) => type === code);
       if (!action) return;
 
-      this.notifier.process(action[0], message)
+      this.notifier.process(action[0], message);
+      this.timeout = setTimeout(() => {
+        this.notifier.notify('disconnect');
+      }, 3000);
     });
 
-    setInterval(() => {
-      this.dispatch(Outgoing.PING, new Date());
-    }, 100);
+
 
   }
-  send(message) {
+
+  connect(connectionMessage) {
+    console.log(`Openning connection to ${this.address}:${this.port}`);
+    this.connecting = true;
+
+    const connectFn = () => {
+      const buffer = Buffer.from(connectionMessage, 'utf-8');
+      this.send(buffer);
+    };
+    connectFn();
+    this.connectingInterval = setInterval(connectFn, 100);
+
+    this.timeout = setTimeout(() => {
+      this.notifier.notify('disconnect');
+    }, 3000);
+  }
+
+  send(message:Buffer) {
     this.client.send(message, this.port, this.address);
   }
 
-  on(event: string, handler: (any) => void) {
+  on(event: string, handler: (...any) => void) {
     this.notifier.on(event, handler);
+  }
+
+  off(event: string, handler: (...any) => void) {
+    this.notifier.off(event, handler);
   }
 
   dispatch(action: Outgoing, ...args) {
     this.send(this.serializer.serialize(action, ...args));
   }
+
 }
