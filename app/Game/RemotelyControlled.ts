@@ -18,9 +18,7 @@ export class RemotelyControlled {
     player.positionY = y;
 
     connection.on('players', (players) => {
-      console.log(players);
       const remote = players.find(player => player.id === this.player.id);
-
 
       if (remote) {
         if (this.lastMove && (new Date).getTime() - this.lastMove > 100) {

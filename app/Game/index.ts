@@ -1,3 +1,6 @@
+import throttle from 'lodash.throttle';
+
+import { Connection } from '../Network';
 import {
   Cell,
   getElementInCell,
@@ -26,8 +29,26 @@ export class Game {
   fires: Fire[] = [];
   debris: Debris[] = [];
 
-  constructor(stage, cellSize) {
+  constructor(stage, connection: Connection, cellSize) {
     this.loadMap(stage, cellSize);
+    const width = this.map[0].length;
+    connection.on('bombs', throttle((bombs) => {
+      const newBombs = bombs.map((bomb) => {
+        bomb.x = bomb.position % width;
+        bomb.y = Math.floor(bomb.position / width);
+        return bomb;
+      });
+
+      const toExplode = this.bombs.filter(bomb => {
+        const x = bomb.getCell().col;
+        const y = bomb.getCell().row;
+        return !newBombs.find(b => b.x === x && b.y === y);
+      });
+
+      toExplode.forEach(bomb => bomb.explode(this));
+
+      newBombs.forEach(bomb => this.putBomb(bomb));
+    }, 10));
   }
 
   getElements():Element[] {
@@ -58,7 +79,7 @@ export class Game {
   }
 
   update(timeDiff: number) {
-    this.checkBombs();
+    //this.checkBombs();
     this.checkFires();
     this.checkDebris();
   }
@@ -90,6 +111,23 @@ export class Game {
     }
   }
 
+  putBomb(bomb) {
+
+    const inserted = this.map[bomb.y][bomb.x].getInsertedElement();
+    if (inserted && !(inserted instanceof Fire)) {
+      return false;
+    }
+    if (inserted && inserted instanceof Fire && !(<Fire> inserted).isInactive()) {
+      return false;
+    }
+    const player = this.players.find(player => player.id === bomb.ownerId);
+
+    const instance = new Bomb([player]);
+    instance.setCell(this.map[bomb.y][bomb.x]);
+    this.bombs.push(instance);
+    this.map[bomb.y][bomb.x].insertElement(instance);
+  }
+
   placeBomb(posX, posY, player:Player) {
     const size = this.map[0][0].cellSize;
     const crow = Math.floor(posY / size);
@@ -104,8 +142,6 @@ export class Game {
       return false;
     }
     bomb.setCell(this.map[crow][ccol]);
-    this.bombs.push(bomb);
-    this.map[crow][ccol].insertElement(bomb);
     return bomb;
   }
 

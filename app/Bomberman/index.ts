@@ -9,7 +9,7 @@ import {
   RemotelyControlled,
   Character,
  } from '../Game';
-import { stage0 } from '../stages';
+import { stage1 } from '../stages';
 import { Connection } from '../Network';
 
 
@@ -43,12 +43,10 @@ export class Bomberman {
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
 
-    this.game = new Game(stage0, config.fieldSize);
-    console.log(status.localId);
+    this.game = new Game(stage1, connection, config.fieldSize);
     const localPlayer = new Player(status.localId, idToCharacter(status.localId));
     this.local = new LocallyControlled(localPlayer, 0, 0, this.game, connection);
     const remotes = status.players.filter(player => player.id !== status.localId).map(player => {
-      console.log('Remote', player.id);
       const remotePlayer = new Player(player.id, idToCharacter(player.id));
       new RemotelyControlled(remotePlayer, 0, 0, this.game, connection);
       return remotePlayer;
@@ -56,6 +54,7 @@ export class Bomberman {
     this.game.setPlayers([localPlayer, ...remotes]);
 
     this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
+
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
     this.renderer.setElements([this.game.elements, this.game.bombs, this.game.fires, this.game.debris, this.game.players]);
 

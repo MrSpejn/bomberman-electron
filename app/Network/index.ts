@@ -45,7 +45,7 @@ const INCOMING_CODES: Array<[Incoming, String]> = [
   [Incoming.PING, 'pi'],
   [Incoming.MAP, 'ad'],
   [Incoming.PLAYERS, 'p:'],
-  [Incoming.BOMBS, 'ad'],
+  [Incoming.BOMBS, 'b:'],
   [Incoming.ACK, 'ad'],
 ];
 
@@ -91,7 +91,6 @@ export class MessageNotifier {
 
   playerParser(message: Buffer) {
     const asd = message.toString('utf-8');
-    console.log('Message', asd);
     const players = asd.split('|').slice(1);
     return players.map(player => {
       const params = player.split(',');
@@ -107,7 +106,19 @@ export class MessageNotifier {
   }
 
   bombParser(message: Buffer) {
-
+    const asText = message.toString('utf-8');
+    const bombsData = asText.split('|').slice(1, -1);
+    const bombs = bombsData.map(bombString => {
+      const params = bombString.split(',');
+      return {
+        position: parseInt(params[0]),
+        ownerId: parseInt(params[1]),
+        power: parseInt(params[2]),
+        duration: parseInt(params[3]),
+        timestamp: parseInt(params[4]),
+      };
+    });
+    return bombs;
   }
 
   mapParser(message: Buffer) {
@@ -174,7 +185,6 @@ export class MessageSerializer {
     buffer.writeInt32LE(Math.floor(position.x), 2);
     buffer.writeInt32LE(Math.floor(position.y), 6);
 
-    console.log('mv', position.x, position.y);
     return buffer;
   }
 
@@ -227,7 +237,6 @@ export class Connection {
 
 
     this.client.on('message', (message) => {
-      //console.log('message', message.toString('utf-8'));
       if (!this.connecting && !this.connected) {
         return;
       }
