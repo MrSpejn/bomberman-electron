@@ -11,9 +11,11 @@ import 'semantic-ui-css/semantic.min.css';
 import './style.scss';
 
 const connection = new Connection('localhost', 1234);
+const appStore = new AppStore(connection);
+connection.setNetworkMeta(appStore.networkMeta);
 
 ReactDOM.render((
-  <Provider appStore={new AppStore(connection)}>
+  <Provider appStore={appStore}>
     <Root />
   </Provider>
 ), document.querySelector('#root'));

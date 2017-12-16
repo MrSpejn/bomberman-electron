@@ -5,7 +5,10 @@ import {
 } from 'mobx-react';
 
 import { AppStore } from '../Store';
-import { Ping } from './';
+import {
+  Ping,
+  NetworkMeta,
+} from './';
 
 export interface props {
   appStore?: AppStore,
@@ -21,6 +24,7 @@ export class Stats extends React.Component<props, state> {
     return (
       <div className="stats">
         <Ping ping={this.props.appStore.ping} />
+        <NetworkMeta appStore={this.props.appStore} />
       </div>
     );
   }

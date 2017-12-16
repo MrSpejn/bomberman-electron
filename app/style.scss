@@ -17,9 +17,12 @@ body {
 .stats {
   position: absolute;
   padding: 15px 30px 15px 35px;
+  opacity: 0.8;
+  width: 300px;
   top: 50px;
   right: 0;
   z-index: 3;
+  color: #fff;
   background-color: #444;
 }
 .header {

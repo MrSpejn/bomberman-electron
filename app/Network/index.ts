@@ -1,4 +1,8 @@
 import {
+  GameStatus,
+  NetworkMeta,
+} from '../Store/AppStore';
+import {
   setTimeout,
   clearTimeout,
   clearInterval,
@@ -43,7 +47,7 @@ export enum Outgoing {
 const INCOMING_CODES: Array<[Incoming, String]> = [
   [Incoming.JOIN_RES, 'pl'],
   [Incoming.PING, 'pi'],
-  [Incoming.MAP, 'ad'],
+  [Incoming.MAP, 'o:'],
   [Incoming.PLAYERS, 'p:'],
   [Incoming.BOMBS, 'b:'],
   [Incoming.ACK, 'ad'],
@@ -122,12 +126,13 @@ export class MessageNotifier {
   }
 
   mapParser(message: Buffer) {
-
+    const asText = message.toString('utf-8').split('|')[1];
+    return asText;
   }
 
   gameStatusParser(message: Buffer) {
     const asText = message.toString('utf-8');
-    const gameStatus = {};
+    const gameStatus: GameStatus = {};
     const [status, ...players] = asText.split('|');
     const [allReady, localId] = status.split(',');
     gameStatus.started = parseInt(allReady.split(':')[1]) == 0;
@@ -216,6 +221,7 @@ export class Connection {
   connected: boolean = false;
   connecting: boolean = false;
   timeout: NodeJS.Timer = null;
+  networkMeta: NetworkMeta = null;
   connectingInterval: NodeJS.Timer = null;
 
   constructor(address: string, port: number) {
@@ -237,27 +243,41 @@ export class Connection {
 
 
     this.client.on('message', (message) => {
-      if (!this.connecting && !this.connected) {
-        return;
+      const chance = Math.floor(Math.random() * 100);
+      if (chance < this.networkMeta.percentageIncommingDrop) return;
+
+      if (this.networkMeta.receiveDelay > 0) {
+        setTimeout(() => {
+          this.onMessage(message);
+        }, this.networkMeta.receiveDelay);
+      } else {
+        this.onMessage(message);
       }
-      if (this.timeout) {
-        clearTimeout(this.timeout);
-        this.timeout = null;
-      }
-
-      const type = message.toString('utf-8', 0, 2);
-
-      const action = INCOMING_CODES.find(([key, code]) => type === code);
-      if (!action) return;
-
-      this.notifier.process(action[0], message);
-      this.timeout = setTimeout(() => {
-        this.notifier.notify('disconnect');
-      }, 3000);
     });
+  }
 
+  onMessage(message) {
+    if (!this.connecting && !this.connected) {
+      return;
+    }
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = null;
+    }
 
+    const type = message.toString('utf-8', 0, 2);
 
+    const action = INCOMING_CODES.find(([key, code]) => type === code);
+    if (!action) return;
+
+    this.notifier.process(action[0], message);
+    this.timeout = setTimeout(() => {
+      this.notifier.notify('disconnect');
+    }, 3000);
+  }
+
+  setNetworkMeta(networkMeta: NetworkMeta) {
+    this.networkMeta = networkMeta;
   }
 
   connect(connectionMessage) {
@@ -277,7 +297,16 @@ export class Connection {
   }
 
   send(message:Buffer) {
-    this.client.send(message, this.port, this.address);
+    const chance = Math.floor(Math.random() * 100);
+    if (chance < this.networkMeta.percentageOutgoingDrop) return;
+
+    if (this.networkMeta.sendDelay > 0) {
+      setTimeout(() => {
+        this.client.send(message, this.port, this.address);
+      }, this.networkMeta.sendDelay);
+    } else {
+      this.client.send(message, this.port, this.address);
+    }
   }
 
   on(event: string, handler: (...any) => void) {
