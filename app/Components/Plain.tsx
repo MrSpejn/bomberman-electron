@@ -9,6 +9,7 @@ import { AppStore } from '../Store';
 
 export interface props {
   appStore?: AppStore,
+  map: string,
 }
 
 export interface state {
@@ -18,7 +19,7 @@ export interface state {
 @observer
 export class Plain extends React.Component<props, state> {
   componentDidMount() {
-    const bomberman = new Bomberman(this.props.appStore.connection, this.props.appStore.gameStatus);
+    const bomberman = new Bomberman(this.props.appStore.connection, this.props.appStore.gameStatus, this.props.map);
     bomberman.start();
   }
   render() {

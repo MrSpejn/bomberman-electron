@@ -21,6 +21,7 @@ export interface state {
   nick: string,
   dashboard: boolean,
   game: boolean,
+  map: string,
 }
 
 @inject('appStore')
@@ -33,6 +34,7 @@ export class Root extends React.Component<props, state> {
       nick: '',
       dashboard: false,
       game: false,
+      map: '',
     };
 
     this.onJoinRequest = this.onJoinRequest.bind(this);
@@ -52,6 +54,14 @@ export class Root extends React.Component<props, state> {
           });
         }
       });
+
+      const onMap = (map) => {
+        this.props.appStore.connection.off('map', onMap);
+        this.setState({
+          map,
+        });
+      };
+      this.props.appStore.connection.on('map', onMap);
     });
   }
 
@@ -65,7 +75,7 @@ export class Root extends React.Component<props, state> {
         <Header />
         <Stats />
         {this.state.dashboard && <Dashboard />}
-        {this.state.game && <Plain />}
+        {this.state.game && this.state.map && <Plain map={this.state.map} />}
       </div>
     );
   }

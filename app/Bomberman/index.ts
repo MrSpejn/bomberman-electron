@@ -1,4 +1,6 @@
-import { connect } from 'http2';
+import range from 'lodash.range';
+
+import { GameStatus } from '../Store/AppStore';
 import { Renderer as CanvasRenderer } from '../CanvasRenderer';
 import { CanvasObjectProvider } from '../CanvasRenderer/CanvasObjectProvider';
 import { Centerer } from './Centerer';
@@ -17,14 +19,6 @@ const config = {
   fieldSize: 80,
 };
 
-export interface GameStatus {
-  players: {
-    id: number,
-    nick: string,
-  }[],
-  localId: number,
-}
-
 function idToCharacter(id) {
   switch (id) {
     case 1: return Character.PROFESSOR;
@@ -33,17 +27,27 @@ function idToCharacter(id) {
     case 4: return Character.ORKIN;
   }
 }
+
+function toStage(map: string) {
+  console.log('Map', map, map.length);
+  const size = Math.floor(Math.sqrt(map.length));
+  const stage = range(size).map(row => {
+    return map.slice(row * size, (row+1) * size).split('');
+  });
+  return { map: stage };
+}
+
 export class Bomberman {
   local: LocallyControlled;
   renderer: CanvasRenderer;
   game: Game;
 
-  constructor(connection: Connection, status: GameStatus) {
+  constructor(connection: Connection, status: GameStatus, map: string) {
 
+    const stage = toStage(map);
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
-
-    this.game = new Game(stage1, connection, config.fieldSize);
+    this.game = new Game(stage, connection, config.fieldSize);
     const localPlayer = new Player(status.localId, idToCharacter(status.localId));
     this.local = new LocallyControlled(localPlayer, 0, 0, this.game, connection);
     const remotes = status.players.filter(player => player.id !== status.localId).map(player => {

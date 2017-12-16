@@ -103,7 +103,7 @@ export class LocallyControlled {
       dy >= 0 && cellY < map.length-1 && map[cellY+1][cellX],
       dy <= 0 && cellY > 0 && map[cellY-1][cellX],
       dx <= 0 && cellX > 0 && map[cellY][cellX-1],
-    ]
+    ];
     const filled = cells.filter(cell => cell && cell.isCollideable());
 
     if (!filled.some(cell => {

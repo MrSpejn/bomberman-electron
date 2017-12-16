@@ -83,10 +83,11 @@ export class Bomb extends Element {
   explosionTime: number;
   size: number = 3;
 
-  constructor(onCellDuringDeploy: Player[], explosionTime?: number) {
+  constructor(onCellDuringDeploy: Player[], power, explosionTime?: number) {
     super();
     this.collideable = true;
     this.allowed = onCellDuringDeploy;
+    this.size = power;
     this.explosionTime = explosionTime || (new Date()).getTime() + 2000;
   }
 

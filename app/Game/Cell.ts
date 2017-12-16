@@ -43,11 +43,11 @@ export class Cell {
   }
 }
 
-export function getElementInCell(type: number):Element {
+export function getElementInCell(type: string):Element {
   switch(type) {
-    case 0: return null;
-    case 1: return new Wall();
-    case 2: return new Crate();
+    case '0': return null;
+    case '1': return new Crate();
+    case '2': return new Wall();
     default: return null;
   }
 }

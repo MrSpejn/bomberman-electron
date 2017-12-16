@@ -29,9 +29,14 @@ export class Game {
   fires: Fire[] = [];
   debris: Debris[] = [];
 
-  constructor(stage, connection: Connection, cellSize) {
-    this.loadMap(stage, cellSize);
+  constructor(map, connection: Connection, cellSize) {
+    this.loadMap(map, cellSize);
     const width = this.map[0].length;
+
+    connection.on('map', throttle((map) => {
+
+    }));
+
     connection.on('bombs', throttle((bombs) => {
       const newBombs = bombs.map((bomb) => {
         bomb.x = bomb.position % width;
@@ -122,7 +127,7 @@ export class Game {
     }
     const player = this.players.find(player => player.id === bomb.ownerId);
 
-    const instance = new Bomb([player]);
+    const instance = new Bomb([player], bomb.power);
     instance.setCell(this.map[bomb.y][bomb.x]);
     this.bombs.push(instance);
     this.map[bomb.y][bomb.x].insertElement(instance);
