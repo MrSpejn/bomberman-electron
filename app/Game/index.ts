@@ -138,7 +138,7 @@ export class Game {
     const crow = Math.floor(posY / size);
     const ccol = Math.floor(posX / size);
 
-    const bomb = new Bomb([player]);
+    const bomb = new Bomb([player], 1);
     const inserted = this.map[crow][ccol].getInsertedElement();
     if (inserted && !(inserted instanceof Fire)) {
       return false;
