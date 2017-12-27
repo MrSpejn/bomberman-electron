@@ -84,7 +84,6 @@ export class Game {
   }
 
   updateStage(stage: string[][]) {
-    console.log('updateState', stage);
     stage.forEach((row, rowIdx) => {
       row.forEach((cell, colIdx) => {
         if (cell === '0' && this.map[rowIdx][colIdx].getInsertedElement() instanceof Crate) {

@@ -32,7 +32,7 @@ export class AppStore {
   connection: Connection;
   @observable ping: number = -1;
   @observable gameStatus: GameStatus = {
-    players: [],
+    players: observable([]),
     localId: -1,
     started: false,
   };
@@ -61,18 +61,17 @@ export class AppStore {
           exist.connected = player.connected;
           exist.nick = player.nick;
         } else {
-          this.gameStatus.players.push(player);
+          this.gameStatus.players.push(observable({...player, lifes: 0, isAlive: true }));
         }
       });
     }));
-    connection.on('players', throttle((players) => {
-      console.log(players);
+    connection.on('players', throttle(action((players: GamePlayer[]) => {
       this.gameStatus.players.forEach((player, idx) => {
         const incomming = players.find(p => p.id === player.id);
         player.lifes = incomming.lifes;
         player.isAlive = !!incomming.isAlive;
       });
-    }, 2000));
+    }), 12));
   }
   @action setPercentageIncommingDrop(percentage: number) {
     this.networkMeta.percentageIncommingDrop = percentage;
