@@ -103,8 +103,10 @@ export class MessageNotifier {
         lifes: parseInt(params[1]),
         isAlive: parseInt(params[2]),
         availableBombs: parseInt(params[3]),
-        y: parseInt(params[5]),
-        x: parseInt(params[4]),
+        isProtected: parseInt(params[4]),
+        resetPosition: parseInt(params[5]),
+        y: parseInt(params[7]),
+        x: parseInt(params[6]),
       };
     });
   }
@@ -143,6 +145,10 @@ export class MessageNotifier {
         id: parseInt(id),
         nick,
         connected: nick.length > 0,
+        lifes: 0,
+        isAlive: true,
+        isProtected: false,
+        resetPosition: false,
       };
     });
     return gameStatus;
