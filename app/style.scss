@@ -27,13 +27,49 @@ body {
 }
 .header {
   height: 50px;
-  padding: 0 16px;
   background-color: #444;
 
   &__nick {
+    padding: 0 16px;
     line-height: 50px;
     margin: 0;
     color: #fff;
+  }
+
+  &__players {
+    display: flex;
+    margin: 0;
+    padding: 1px;
+    list-style: none;
+  }
+
+  &__player-lifes {
+    width: 150px;
+    max-width: 150px;
+    min-width: 120px;
+    height: 50px;
+    box-sizing: content-box;
+    display: flex;
+  }
+  &__player-life {
+    width: 45px;
+    height: 50px;
+  }
+  &__player {
+    padding: 0 16px;
+    color: #fff;
+
+    .container {
+      display: flex;
+      align-items: center;
+      font-size: 1.25em;
+      height: 50px;
+    }
+    &--local {
+      color: #444;
+      background: radial-gradient(ellipse farthest-corner at right bottom, #FEDB37 0%, #FDB931 8%, #9f7928 30%, #8A6E2F 40%, transparent 80%),
+                radial-gradient(ellipse farthest-corner at left top, #FFFFFF 0%, #FFFFAC 8%, #D1B464 25%, #5d4a1f 62.5%, #5d4a1f 100%);
+    }
   }
 }
 .dialog {

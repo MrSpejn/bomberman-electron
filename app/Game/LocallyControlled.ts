@@ -28,30 +28,15 @@ export class LocallyControlled {
     player.positionY = y;
     this.connection = connection;
 
-    document.addEventListener('keydown', (event) => {
-      if (KEYS.includes(event.key)) {
-        this.keyPressed[event.key] = true;
-        this.lastClicked = event.key;
-      }
-    });
+    this.onKeyDown = this.onKeyDown.bind(this);
+    this.onKeyUp = this.onKeyUp.bind(this);
+    this.onKeyPress = this.onKeyPress.bind(this);
 
-    document.addEventListener('keyup', (event) => {
-      if (KEYS.includes(event.key)) {
-        this.keyPressed[event.key] = false;
-      }
-    });
+    document.addEventListener('keydown', this.onKeyDown);
 
-    document.addEventListener('keypress', (event) => {
-      if (event.key === ' ') {
-        const success = this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
-        if (success) {
-          this.connection.dispatch(Outgoing.BOMB, this.player.id, {
-            x: success.getCell().col,
-            y: success.getCell().row,
-          });
-        }
-      }
-    });
+    document.addEventListener('keyup', this.onKeyUp);
+
+    document.addEventListener('keypress', this.onKeyPress);
 
     const handler = (players, time) => {
       connection.off('players', handler);
@@ -64,6 +49,37 @@ export class LocallyControlled {
     }
 
     connection.on('players', handler);
+  }
+
+  stop() {
+    document.removeEventListener('keydown', this.onKeyDown);
+    document.removeEventListener('keyup', this.onKeyUp);
+    document.removeEventListener('keypress', this.onKeyPress);
+  }
+
+  onKeyDown(event) {
+    if (KEYS.includes(event.key)) {
+      this.keyPressed[event.key] = true;
+      this.lastClicked = event.key;
+    }
+  }
+
+  onKeyPress(event) {
+    if (event.key === ' ') {
+      const success = this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
+      if (success) {
+        this.connection.dispatch(Outgoing.BOMB, this.player.id, {
+          x: success.getCell().col,
+          y: success.getCell().row,
+        });
+      }
+    }
+  }
+
+  onKeyUp(event) {
+    if (KEYS.includes(event.key)) {
+      this.keyPressed[event.key] = false;
+    }
   }
 
   setPosition(x, y, map) {
@@ -133,7 +149,7 @@ export class LocallyControlled {
         nCell.playerEnter(this.player);
       }
 
-      this.connection.dispatch(Outgoing.MOVE, this.player.id, { x: dx, y: dy });
+      this.connection.dispatch(Outgoing.MOVE, this.player.id, { x, y });
 
 
 

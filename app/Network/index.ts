@@ -90,6 +90,7 @@ export class MessageNotifier {
   pingParser(message: Buffer) {
     const length = message.readUInt8(2);
     const date = parseInt(message.toString('utf-8', 3, length + 3));
+    console.log('PING');
     return (new Date).getTime() - date;
   }
 

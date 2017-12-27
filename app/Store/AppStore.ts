@@ -1,4 +1,6 @@
-import { connect } from 'net';
+import merge from 'lodash.merge';
+import throttle from 'lodash.throttle';
+
 import {
   observable,
   action,
@@ -10,6 +12,8 @@ export interface GamePlayer {
   id: number,
   nick: string,
   connected: boolean,
+  lifes: number,
+  isAlive: boolean,
 }
 export interface GameStatus {
   players?: GamePlayer[],
@@ -29,6 +33,8 @@ export class AppStore {
   @observable ping: number = -1;
   @observable gameStatus: GameStatus = {
     players: [],
+    localId: -1,
+    started: false,
   };
   @observable networkMeta: NetworkMeta = {
     percentageIncommingDrop: 0,
@@ -46,8 +52,27 @@ export class AppStore {
       this.ping = -1;
     }));
     connection.on('game_status', action((status: GameStatus) => {
-      this.gameStatus = status;
+      this.gameStatus.localId = status.localId;
+      this.gameStatus.started = status.started;
+      status.players.forEach((player, idx) => {
+        const exist = this.gameStatus.players[idx];
+        if (exist) {
+          exist.id = player.id;
+          exist.connected = player.connected;
+          exist.nick = player.nick;
+        } else {
+          this.gameStatus.players.push(player);
+        }
+      });
     }));
+    connection.on('players', throttle((players) => {
+      console.log(players);
+      this.gameStatus.players.forEach((player, idx) => {
+        const incomming = players.find(p => p.id === player.id);
+        player.lifes = incomming.lifes;
+        player.isAlive = !!incomming.isAlive;
+      });
+    }, 2000));
   }
   @action setPercentageIncommingDrop(percentage: number) {
     this.networkMeta.percentageIncommingDrop = percentage;

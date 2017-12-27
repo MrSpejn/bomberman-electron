@@ -3,6 +3,7 @@ import {
   inject,
   observer,
 } from 'mobx-react';
+import { autorun } from 'mobx';
 
 import { Bomberman } from '../Bomberman';
 import { AppStore } from '../Store';
@@ -21,6 +22,14 @@ export class Plain extends React.Component<props, state> {
   componentDidMount() {
     const bomberman = new Bomberman(this.props.appStore.connection, this.props.appStore.gameStatus, this.props.map);
     bomberman.start();
+    autorun(() => {
+      const status = this.props.appStore.gameStatus;
+      const local = status.players.find(player => player.id === status.localId);
+
+      if (!local.isAlive) {
+        bomberman.stopLocal();
+      }
+    });
   }
   render() {
     return (

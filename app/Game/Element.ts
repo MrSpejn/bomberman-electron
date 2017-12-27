@@ -124,9 +124,10 @@ export class Bomb extends Element {
       game.placeFire(cell);
       return true;
     }
-    if (inserted instanceof Crate) {
-      game.destroyCrate(<Crate> inserted);
-    } else if (inserted instanceof Fire && (<Fire> inserted).isInactive()) {
+    // if (inserted instanceof Crate) {
+    //   game.destroyCrate(<Crate> inserted);
+    // } else
+    if (inserted instanceof Fire && (<Fire> inserted).isInactive()) {
       game.removeFire(<Fire> inserted);
       game.placeFire(cell);
     }

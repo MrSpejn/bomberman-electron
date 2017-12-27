@@ -83,6 +83,10 @@ export class Game {
     }));
   }
 
+  updateStage(stage: number[][]) {
+
+  };
+
   update(timeDiff: number) {
     //this.checkBombs();
     this.checkFires();

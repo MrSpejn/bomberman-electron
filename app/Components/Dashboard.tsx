@@ -13,7 +13,7 @@ export interface props {
 export interface state {
 }
 
-function idToImage(idx) {
+export function idToImage(idx) {
   switch(idx) {
     case 1: return '../images/professor-single.png';
     case 2: return '../images/monk-single.png';
@@ -29,7 +29,7 @@ export class Dashboard extends React.Component<props, state> {
       <div className={`player ${player.id === this.props.appStore.gameStatus.localId ? 'player--local' : ''}`}>
         <img
           className="player__image"
-          src={idToImage(idx + 1)}
+          src={idToImage(player.id)}
           width="100"
         />
         <p className={`player__name ${!player.connected ? 'player__name--await' : ''}`}>

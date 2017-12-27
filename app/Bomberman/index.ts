@@ -1,4 +1,5 @@
 import range from 'lodash.range';
+import throttle from 'lodash.throttle';
 
 import { GameStatus } from '../Store/AppStore';
 import { Renderer as CanvasRenderer } from '../CanvasRenderer';
@@ -29,7 +30,6 @@ function idToCharacter(id) {
 }
 
 function toStage(map: string) {
-  console.log('Map', map, map.length);
   const size = Math.floor(Math.sqrt(map.length));
   const stage = range(size).map(row => {
     return map.slice(row * size, (row+1) * size).split('');
@@ -45,6 +45,7 @@ export class Bomberman {
   constructor(connection: Connection, status: GameStatus, map: string) {
 
     const stage = toStage(map);
+
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
     this.game = new Game(stage, connection, config.fieldSize);
@@ -56,7 +57,9 @@ export class Bomberman {
       return remotePlayer;
     });
     this.game.setPlayers([localPlayer, ...remotes]);
-
+    connection.on('map', throttle(map => {
+      this.game.updateStage(toStage(map).map);
+    }, 100));
     this.renderer = new CanvasRenderer(canvas.getContext('2d'), config.fieldSize, objectProvider);
 
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
@@ -85,5 +88,9 @@ export class Bomberman {
       start = end;
     }
 
+  }
+
+  stopLocal() {
+    this.local.stop();
   }
 }
