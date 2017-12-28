@@ -1,3 +1,4 @@
+import { autorun } from 'mobx';
 import * as React from 'react';
 import {
   inject,
@@ -39,22 +40,30 @@ export class Root extends React.Component<props, state> {
     };
 
     this.onJoinRequest = this.onJoinRequest.bind(this);
+    autorun(() => {
+      if (props.appStore.reconnnect) {
+        this.onJoinRequest({ nick: props.appStore.reconnnect });
+      }
+    });
   }
 
   onJoinRequest({ nick }) {
     this.setState({ nick }, () => {
       this.props.appStore.connection.connect(`pr${nick.length}:${nick}`);
-      this.props.appStore.connection.on('connect', () => {
+
+      const onConnect = () => {
+        this.props.appStore.connection.off('connect', onConnect);
         this.setState({ dashboard: true });
-      });
-      this.props.appStore.connection.on('game_status', (status) => {
+      };
+
+      const onStatus = (status) => {
         if (!this.state.game && status.started) {
           this.setState({
             dashboard: false,
             game: true,
           });
         }
-      });
+      };
 
       const onMap = (map) => {
         this.props.appStore.connection.off('map', onMap);
@@ -62,6 +71,11 @@ export class Root extends React.Component<props, state> {
           map,
         });
       };
+
+      this.props.appStore.connection.on('connect', onConnect);
+
+      this.props.appStore.connection.on('game_status', onStatus);
+
       this.props.appStore.connection.on('map', onMap);
     });
   }

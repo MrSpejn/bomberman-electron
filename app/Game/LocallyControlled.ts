@@ -12,6 +12,7 @@ export class LocallyControlled {
   player: Player;
   game: Game;
   id: number;
+  stopped: boolean = false;
   keyPressed = {
     ArrowDown: false,
     ArrowUp: false,
@@ -52,9 +53,16 @@ export class LocallyControlled {
   }
 
   stop() {
+    this.stopped = true;
     document.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('keyup', this.onKeyUp);
     document.removeEventListener('keypress', this.onKeyPress);
+    this.keyPressed = {
+      ArrowDown: false,
+      ArrowUp: false,
+      ArrowLeft: false,
+      ArrowRight: false,
+    };
   }
 
   onKeyDown(event) {
@@ -211,6 +219,7 @@ export class LocallyControlled {
   }
 
   update(timeDiff: number) {
+    if (this.stopped) return;
     const direction = this.keyPressed[this.lastClicked] ? this.lastClicked : KEYS.find(key => this.keyPressed[key]);
     if (!direction) {
       const [activity, prevDir] = this.player.state.animation.split('_');

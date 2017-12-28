@@ -186,11 +186,22 @@ body {
     background-color: rgba(31, 31, 31, 0.6);
     z-index: 10;
   }
+
+  &__reconnect {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
   &__text {
     text-align: center;
     margin: 0;
     line-height: 120px;
-    color: #871120;
     font-size: 64px;
+    color: #E4A82E;
+    &--failure {
+      color: #871120;
+    }
   }
 }

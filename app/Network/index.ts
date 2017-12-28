@@ -240,6 +240,7 @@ export class Connection {
     this.serializer = new MessageSerializer();
 
     this.notifier.on('connect', () => {
+      console.log('Connected');
       this.connected = true;
       this.connecting = false;
       clearInterval(this.connectingInterval);
@@ -291,6 +292,7 @@ export class Connection {
   connect(connectionMessage) {
     console.log(`Openning connection to ${this.address}:${this.port}`);
     this.connecting = true;
+    this.connected = false;
 
     const connectFn = () => {
       const buffer = Buffer.from(connectionMessage, 'utf-8');

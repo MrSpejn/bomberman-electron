@@ -6,6 +6,7 @@ import {
   action,
 } from 'mobx';
 import { Connection } from '../Network';
+import { setTimeout } from 'timers';
 
 
 export interface GamePlayer {
@@ -32,6 +33,7 @@ export interface NetworkMeta {
 
 export class AppStore {
   connection: Connection;
+  reconnect: string;
   @observable ping: number = -1;
   @observable gameStatus: GameStatus = {
     players: observable([]),
@@ -88,5 +90,12 @@ export class AppStore {
   }
   @action setReceiveDelay(delay: number) {
     this.networkMeta.receiveDelay = delay;
+  }
+  @action replay() {
+    const nick = this.gameStatus.players.find(player => player.id === this.gameStatus.localId).nick;
+    this.reconnect = nick;
+    setTimeout(action(() => {
+      this.reconnect = null;
+    }), 1);
   }
 };
