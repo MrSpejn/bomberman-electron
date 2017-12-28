@@ -74,11 +74,13 @@ export class MessageNotifier {
       this.handlers[event] = [handler];
     }
   }
+
   off(event: string, handler: (...any) => void) {
     if (this.handlers[event]) {
       this.handlers[event] = this.handlers[event].filter(fn => fn !== handler);
     }
   }
+
   notify(event, ...args) {
     this.counters[event] = this.counters[event] ? this.counters[event] + 1 : 1;
 

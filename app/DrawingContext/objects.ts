@@ -284,6 +284,8 @@ class Character extends CanvasElement {
       this.overlayCounter = 0;
       this.overlayColor = '#ffffff';
       this.overlayTiming = 400;
+    } else {
+      this.overlayColor = null;
     }
   }
 
