@@ -24,24 +24,30 @@ export class RemotelyControlled {
         if (this.lastMove && (new Date).getTime() - this.lastMove > 100) {
           this.lastMove = null;
         }
-        if (!this.lastMove && player.positionX === remote.x && player.positionY === remote.y) {
-          const [activity, prevDir] = this.player.state.animation.split('_');
-          this.player.state.animation = `stay_${prevDir}`;
-        } else if (player.positionX !== remote.x || player.positionY !== remote.y) {
-          const dx = player.positionX - remote.x;
-          const dy = player.positionY - remote.y;
-
-          if (Math.abs(dx) > Math.abs(dy)) {
-            this.player.state.animation = dx > 0 ? 'walk_left' : 'walk_right';
-          } else {
-            this.player.state.animation = dy > 0 ? 'walk_back' : 'walk_front';
-          }
-          this.lastMove = (new Date()).getTime();
+        if (remote.isAlive) {
+          this.changeAnimation(remote);
         }
-
         player.positionX = remote.x;
         player.positionY = remote.y;
       }
     });
+  }
+
+  changeAnimation(remote) {
+    const player = this.player;
+    if (!this.lastMove && player.positionX === remote.x && player.positionY === remote.y) {
+      const [activity, prevDir] = this.player.state.animation.split('_');
+      this.player.state.animation = `stay_${prevDir}`;
+    } else if (player.positionX !== remote.x || player.positionY !== remote.y) {
+      const dx = player.positionX - remote.x;
+      const dy = player.positionY - remote.y;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        this.player.state.animation = dx > 0 ? 'walk_left' : 'walk_right';
+      } else {
+        this.player.state.animation = dy > 0 ? 'walk_back' : 'walk_front';
+      }
+      this.lastMove = (new Date()).getTime();
+    }
   }
 }

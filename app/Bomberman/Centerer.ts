@@ -1,5 +1,4 @@
 import { Player } from '../Game';
-import { autorun } from 'mobx';
 import { Renderer as CanvasRenderer } from '../CanvasRenderer';
 
 export class Centerer {
@@ -47,8 +46,5 @@ export class Centerer {
 
   setMainPlaya(playa: Player) {
     this.playa = playa;
-    autorun(() => {
-      this.centerOnPlayer();
-    });
   }
 }

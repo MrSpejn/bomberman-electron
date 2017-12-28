@@ -38,6 +38,7 @@ function toStage(map: string) {
 }
 
 export class Bomberman {
+  centerer: Centerer;
   local: LocallyControlled;
   renderer: CanvasRenderer;
   game: Game;
@@ -49,10 +50,18 @@ export class Bomberman {
     const objectProvider = new CanvasObjectProvider();
     const canvas = <HTMLCanvasElement> document.querySelector('#plain');
     this.game = new Game(stage, connection, config.fieldSize);
-    const localPlayer = new Player(status.localId, idToCharacter(status.localId));
+    const localPlayer = new Player(
+      status.localId,
+      status.players.find(p => p.id === status.localId),
+      idToCharacter(status.localId)
+    );
     this.local = new LocallyControlled(localPlayer, 0, 0, this.game, connection);
     const remotes = status.players.filter(player => player.id !== status.localId).map(player => {
-      const remotePlayer = new Player(player.id, idToCharacter(player.id));
+      const remotePlayer = new Player(
+        player.id,
+        player,
+        idToCharacter(player.id),
+      );
       new RemotelyControlled(remotePlayer, 0, 0, this.game, connection);
       return remotePlayer;
     });
@@ -65,8 +74,8 @@ export class Bomberman {
     this.renderer.setPlain(this.game.map.length, this.game.map[0].length);
     this.renderer.setElements([this.game.elements, this.game.bombs, this.game.fires, this.game.debris, this.game.players]);
 
-    const centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
-    centerer.setMainPlaya(localPlayer);
+    this.centerer = new Centerer(this.renderer.width, this.renderer.height, this.renderer);
+    this.centerer.setMainPlaya(localPlayer);
   }
 
   start() {
@@ -83,6 +92,7 @@ export class Bomberman {
       const timeDiff = end.getTime() - start.getTime();
       this.game.update(timeDiff);
       this.local.update(timeDiff);
+      this.centerer.centerOnPlayer();
       this.renderer.render(end.getTime(), timeDiff);
       requestAnimationFrame(animationFrame);
       start = end;

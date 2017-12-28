@@ -30,6 +30,25 @@ export class DrawingContext {
     else {
       this.context.drawImage(image, sourceX - this.scrollX, sourceY - this.scrollY, sourceWidth, sourceHeight);
     }
+  }
 
+  save() {
+    this.context.save();
+  }
+
+  drawRect(x, y, width, height, { color }) {
+    const prev = this.context.fillStyle;
+    this.context.fillStyle = color;
+    this.context.fillRect(x - this.scrollX, y - this.scrollY, width, height);
+    this.context.fillStyle = prev;
+  }
+
+  configure(config) {
+    Object.keys(config).forEach((key) => {
+      this.context[key] = config[key];
+    });
+  }
+  restore() {
+    this.context.restore();
   }
 }

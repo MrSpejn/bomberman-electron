@@ -1,5 +1,7 @@
 import { observable } from 'mobx';
 import { Element } from './Element';
+import { GamePlayer } from '../Store/AppStore';
+import { autorun } from 'mobx';
 
 export enum Character {
   ORKIN = 'orkin',
@@ -8,10 +10,13 @@ export enum Character {
   MONK = 'monk',
 }
 
+
+
 export class Player extends Element {
   id: number;
-  @observable positionX:number = 0;
-  @observable positionY:number = 0;
+  positionX: number = 0;
+  positionY: number = 0;
+  @observable gameState:GamePlayer;
   width = 25;
   height = 10;
   state = {
@@ -19,9 +24,10 @@ export class Player extends Element {
   };
   character: Character;
 
-  constructor(id: number, character: Character) {
+  constructor(id: number, gameState: GamePlayer, character: Character) {
     super();
     this.character = character;
+    this.gameState = gameState;
     this.id = id;
   }
 

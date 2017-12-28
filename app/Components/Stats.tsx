@@ -15,16 +15,27 @@ export interface props {
 }
 
 export interface state {
+  showMeta: boolean;
 }
+
 
 @inject('appStore')
 @observer
 export class Stats extends React.Component<props, state> {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showMeta: false,
+    }
+  }
   render() {
     return (
       <div className="stats">
         <Ping ping={this.props.appStore.ping} />
-        <NetworkMeta appStore={this.props.appStore} />
+        <div onClick={() => this.setState({ showMeta: !this.state.showMeta })}>Toggle</div>
+        {this.state.showMeta && (
+          <NetworkMeta appStore={this.props.appStore} />
+        )}
       </div>
     );
   }

@@ -6,3 +6,4 @@ export { Plain } from './Plain';
 export { Header } from './Header';
 export { Dashboard } from './Dashboard';
 export { NetworkMeta } from './NetworkMeta';
+export { Overlay } from './Overlay';

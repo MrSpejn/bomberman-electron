@@ -49,7 +49,6 @@ export class Header extends React.Component<props, state> {
   render() {
     const status = this.props.appStore.gameStatus;
     const local = status.players.find(player => player.id === status.localId);
-
     return (
       <div className="header">
         {status.started ? (

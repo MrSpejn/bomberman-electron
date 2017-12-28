@@ -1,8 +1,9 @@
 import { autorun } from 'mobx';
 
 import { Animation } from './animation';
-import { Element } from '../Game';
+import { Element, Player } from '../Game';
 import { DrawingContext } from '.';
+import { GamePlayer } from '../Store/AppStore';
 
 
 interface Images {
@@ -234,12 +235,13 @@ class Character extends CanvasElement {
   duration: number;
   isStatic: boolean;
   size: number;
+  overlayCounter: number = 0;
+  overlayColor: string = null;
+  overlayTiming: number = 1000;
 
   constructor(offsetX:number, offsetY:number, animationDuration: number) {
     super(offsetX, offsetY - 40);
     this.size = 80;
-    this.spriteX = 64;
-    this.spriteY = 0;
     this.step = animationDuration / 8;
     this.duration = animationDuration;
     this.animationCounter = 0;
@@ -250,6 +252,9 @@ class Character extends CanvasElement {
     this.origin = origin;
     autorun(() => {
       this.changeAnimation(origin.state.animation);
+    });
+    autorun(() => {
+      this.changeOvelayEffect(origin.gameState);
     });
   }
 
@@ -265,19 +270,59 @@ class Character extends CanvasElement {
 
     this.isStatic = activity == 'stay';
     this.animationCounter = 0;
+  }
 
+  changeOvelayEffect(gameState: GamePlayer) {
+    if (!gameState.isAlive) {
+      this.animationCounter = 0;
+      this.spriteY = 256;
+      this.isStatic = false;
+      return;
+    }
 
+    if (gameState.isProtected) {
+      this.overlayCounter = 0;
+      this.overlayColor = '#ffffff';
+      this.overlayTiming = 400;
+    }
   }
 
   render(context: DrawingContext, state: { timeDiff: number }) {
     const position = this.getPosition();
-    if (this.isStatic) {
-      return context.drawImage(this.image, 0, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
+    if (this.overlayColor) {
+      this.overlayCounter = this.overlayCounter + state.timeDiff;
+    }
+    if ((<Player>this.origin).gameState.isAlive && this.isStatic) {
+      this.draw(context, 0);
+      return;
     }
     this.animationCounter = this.animationCounter + state.timeDiff;
+
+    if (!(<Player>this.origin).gameState.isAlive) {
+      const stage = Math.ceil(this.animationCounter / 200) > 6 ? 6 : Math.ceil(this.animationCounter / 200);
+      this.spriteX = stage * 64;
+      context.drawImage(this.image, this.spriteX , this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
+      return;
+    }
+
     const stage = Math.ceil((this.animationCounter % this.duration) / this.step);
     this.spriteX = stage * 64;
-    context.drawImage(this.image, this.spriteX, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
+    this.draw(context, this.spriteX);
+  }
+
+  draw(context: DrawingContext, x: number) {
+    const position = this.getPosition();
+    if (this.overlayColor) {
+      const stage = Math.floor((this.overlayCounter % this.overlayTiming) / (this.overlayTiming / 2));
+
+      if (stage !== 0) {
+        context.drawImage(this.image, x, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
+      }
+    } else {
+      context.drawImage(this.image, x, this.spriteY, 64, 64, position.x, position.y, this.size, this.size);
+    }
+
+
   }
 }
 
@@ -377,11 +422,5 @@ export class Bomb extends CanvasElement {
     }
 
     context.drawImage(this.image, 0, 0, 80, 80, offsetX, offsetY, 100, 100);
-  }
-}
-
-class Player extends CanvasElement {
-  render(context: DrawingContext, state: Object) {
-
   }
 }

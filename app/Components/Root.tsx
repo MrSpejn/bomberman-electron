@@ -10,6 +10,7 @@ import {
   Stats,
   Plain,
   Dashboard,
+  Overlay,
 } from './';
 import { AppStore } from '../Store';
 
@@ -74,6 +75,7 @@ export class Root extends React.Component<props, state> {
         />
         <Header />
         <Stats />
+        {this.state.game && this.state.map && <Overlay />}
         {this.state.dashboard && <Dashboard />}
         {this.state.game && this.state.map && <Plain map={this.state.map} />}
       </div>

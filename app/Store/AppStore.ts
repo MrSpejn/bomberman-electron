@@ -14,6 +14,8 @@ export interface GamePlayer {
   connected: boolean,
   lifes: number,
   isAlive: boolean,
+  isProtected: boolean,
+  resetPosition: boolean,
 }
 export interface GameStatus {
   players?: GamePlayer[],
@@ -70,6 +72,8 @@ export class AppStore {
         const incomming = players.find(p => p.id === player.id);
         player.lifes = incomming.lifes;
         player.isAlive = !!incomming.isAlive;
+        player.isProtected = !!incomming.isProtected;
+        player.resetPosition = !!incomming.resetPosition;
       });
     }), 12));
   }
