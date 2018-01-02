@@ -7,6 +7,7 @@ import {
 } from 'mobx';
 import { Connection } from '../Network';
 import { setTimeout } from 'timers';
+import { PendingMap } from '../Components/Root';
 
 
 export interface GamePlayer {
@@ -34,6 +35,7 @@ export interface NetworkMeta {
 export class AppStore {
   connection: Connection;
   reconnect: string;
+  @observable maps: PendingMap[] = [];
   @observable ping: number = -1;
   @observable gameStatus: GameStatus = {
     players: observable([]),
@@ -50,6 +52,7 @@ export class AppStore {
   constructor(connection: Connection) {
     this.connection = connection;
     connection.on('ping', action((ping) => {
+      console.log(ping);
       this.ping = <number>ping;
     }));
     connection.on('disconnect', action((ping) => {

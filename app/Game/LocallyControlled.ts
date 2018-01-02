@@ -46,7 +46,6 @@ export class LocallyControlled {
         player.positionX = local.x;
         player.positionY = local.y;
       }
-
     }
 
     connection.on('players', handler);
@@ -76,7 +75,8 @@ export class LocallyControlled {
     if (event.key === ' ') {
       const success = this.game.placeBomb(this.player.positionX, this.player.positionY, this.player);
       if (success) {
-        this.connection.dispatch(Outgoing.BOMB, this.player.id, {
+        this.connection.dispatchUntilAcknowledge(Outgoing.BOMB, {
+          id: this.player.id,
           x: success.getCell().col,
           y: success.getCell().row,
         });

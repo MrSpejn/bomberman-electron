@@ -1,3 +1,8 @@
+import * as process from 'process';
+import * as dgram from 'dgram';
+import throttle from 'lodash.throttle';
+import ShortUniqueId from 'short-unique-id';
+
 import {
   GameStatus,
   NetworkMeta,
@@ -8,10 +13,8 @@ import {
   clearInterval,
   setInterval,
 } from 'timers';
-
-import * as process from 'process';
-import * as dgram from 'dgram';
-import throttle from 'lodash.throttle';
+;
+import { Buffer } from 'buffer';
 interface Types {
   PING: string,
   MAP: string,
@@ -33,14 +36,20 @@ enum Incoming {
   JOIN_RES = 'JOIN_RES',
   PENDING_GAME_STATE = 'PENDING_GAME_STATE',
   GAME_START = 'GAME_START',
+  PENDING_MAPS = 'PENDING_MAPS',
+  ACK_BOMB = 'ACK_BOMB',
+  ACK_JOIN_GAME = 'ACK_JOIN_GAME',
+  ACK_CREATE_GAME = 'ACK_CREATE_GAME',
 };
 
 export enum Outgoing {
   PING = 'PING',
   MOVE = 'MOVE',
   BOMB = 'BOMB',
-  REQ_JOIN = 'REQ_JOIN',
+  CREATE_GAME = 'CREATE_GAME',
+  JOIN_GAME = 'JOIN_GAME',
   ACK  = 'ACK',
+  MAPS = 'MAPS',
 };
 
 
@@ -50,7 +59,8 @@ const INCOMING_CODES: Array<[Incoming, String]> = [
   [Incoming.MAP, 'o:'],
   [Incoming.PLAYERS, 'p:'],
   [Incoming.BOMBS, 'b:'],
-  [Incoming.ACK, 'ad'],
+  [Incoming.ACK, 'ac'],
+  [Incoming.PENDING_MAPS, 'pm'],
 ];
 
 const OUTGOING_CODES = {
@@ -58,10 +68,6 @@ const OUTGOING_CODES = {
   [Outgoing.BOMB]: 0x24,
   [Outgoing.MOVE]: 0x18,
 };
-
-
-
-
 
 export class MessageNotifier {
   handlers = {};
@@ -134,6 +140,26 @@ export class MessageNotifier {
     return asText;
   }
 
+  pendingMapsParser(message: Buffer) {
+    const asText = message.toString('utf-8');
+    const mapsData = asText.split('|').slice(1, -1);
+    const maps = mapsData.map(mapString => {
+      const params = mapString.split(',');
+      return {
+        id: parseInt(params[0]),
+        name: params[1],
+        currentPlayers: parseInt(params[2]),
+        maxPlayers: parseInt(params[3]),
+      };
+    });
+    return maps;
+  }
+
+  acknowledgeParser(message: Buffer) {
+    return message.toString('utf-8').slice(2);
+
+  }
+
   gameStatusParser(message: Buffer) {
     const asText = message.toString('utf-8');
     const gameStatus: GameStatus = {};
@@ -171,6 +197,12 @@ export class MessageNotifier {
       case Incoming.PLAYERS: {
         return this.notify('players', this.playerParser(message));
       }
+      case Incoming.ACK: {
+        return this.notify('acknowledge', this.acknowledgeParser(message));
+      }
+      case Incoming.PENDING_MAPS: {
+        return this.notify('maps', this.pendingMapsParser(message));
+      }
       case Incoming.BOMBS: {
         this.notify('bombs', this.bombParser(message));
         return;
@@ -180,14 +212,20 @@ export class MessageNotifier {
 }
 
 export class MessageSerializer {
-  serialize(action: Outgoing, ...args) {
+  serialize(action: Outgoing, reconnect: boolean, unique: string, ...args) {
     switch(action) {
       case Outgoing.PING:
         return this.serializePing(<Date> args[0]);
       case Outgoing.BOMB:
-        return this.serializeBomb(<number> args[0], <Position> args[1]);
+        return this.serializeBomb(reconnect, unique, <Position> args[0]);
       case Outgoing.MOVE:
         return this.serializeMove(<number> args[0], <Position> args[1]);
+      case Outgoing.CREATE_GAME:
+        return this.serializeCreateGame(reconnect, unique, <string> args[0]);
+      case Outgoing.JOIN_GAME:
+        return this.serializeJoinGame(reconnect, unique, <string> args[0], <number> args[1]);
+      case Outgoing.MAPS:
+        return this.serializePendingMaps();
     }
   }
 
@@ -201,11 +239,12 @@ export class MessageSerializer {
     return buffer;
   }
 
-  serializeBomb(playerId: number, position: Position) {
-    const buffer = Buffer.alloc(10);
-    buffer.write('bm', 0);
-    buffer.writeUInt32LE(position.x, 2);
-    buffer.writeUInt32LE(position.y, 6);
+  serializeBomb(reconnect: boolean, unique: string, position: Position) {
+    const buffer = Buffer.alloc(32);
+    buffer.write(reconnect ? 'rtbm' : 'bm', 0);
+    buffer.writeUInt32LE(position.x, reconnect ? 4 : 2);
+    buffer.writeUInt32LE(position.y, reconnect ? 8 : 6);
+    buffer.write(unique, reconnect ? 12 : 10);
     return buffer;
   }
 
@@ -217,6 +256,29 @@ export class MessageSerializer {
     buffer.write(timestamp, 3);
     return buffer;
   }
+
+  serializePendingMaps() {
+    const buffer = Buffer.from('pm', 'utf-8');
+    return buffer;
+  }
+
+  serializeCreateGame(reconnect: boolean, unique: string, name: string) {
+    const start = `${reconnect ? 'rt' : ''}pr${name.length}:${name}`;
+    const buffer = Buffer.alloc(start.length + 24, 0);
+    buffer.write(start, 0);
+    buffer.writeInt32LE(-1, start.length);
+    buffer.write(unique, start.length + 4);
+    return buffer;
+  }
+
+  serializeJoinGame(reconnect: boolean, unique: string, name: string, id: number) {
+    const start = `${reconnect ? 'rt' : ''}pr${name.length}:${name}`;
+    const buffer = Buffer.alloc(start.length + 24, 0);
+    buffer.write(start, 0);
+    buffer.writeInt32LE(id, start.length);
+    buffer.write(unique, start.length + 4);
+    return buffer;
+  }
 }
 
 export class Connection {
@@ -226,11 +288,13 @@ export class Connection {
   address: string;
   port: number;
   ping: number = 0;
+  pingInterval: NodeJS.Timer = null;
   connected: boolean = false;
   connecting: boolean = false;
   timeout: NodeJS.Timer = null;
   networkMeta: NetworkMeta = null;
   connectingInterval: NodeJS.Timer = null;
+  uid: ShortUniqueId = null;
 
   constructor(address: string, port: number) {
     this.port = port;
@@ -238,13 +302,14 @@ export class Connection {
     this.client = dgram.createSocket('udp4');
     this.notifier = new MessageNotifier();
     this.serializer = new MessageSerializer();
+    this.uid = new ShortUniqueId();
 
     this.notifier.on('connect', () => {
       console.log('Connected');
       this.connected = true;
       this.connecting = false;
       clearInterval(this.connectingInterval);
-      setInterval(() => {
+      this.pingInterval = setInterval(() => {
         this.dispatch(Outgoing.PING, new Date());
       }, 250);
     });
@@ -282,6 +347,9 @@ export class Connection {
     this.notifier.process(action[0], message);
     this.timeout = setTimeout(() => {
       this.notifier.notify('disconnect');
+      this.connected = false;
+      clearInterval(this.pingInterval);
+      console.log('Disconnected');
     }, 3000);
   }
 
@@ -289,24 +357,42 @@ export class Connection {
     this.networkMeta = networkMeta;
   }
 
-  connect(connectionMessage) {
+  connect() {
     console.log(`Openning connection to ${this.address}:${this.port}`);
     this.connecting = true;
     this.connected = false;
 
+    const unique = this.uid.randomUUID(20);
+
     const connectFn = () => {
-      const buffer = Buffer.from(connectionMessage, 'utf-8');
+      const buffer = Buffer.from(`rtcn${unique}`, 'utf-8');
       this.send(buffer);
     };
-    connectFn();
-    this.connectingInterval = setInterval(connectFn, 100);
+    const onMessage = (uniqueSequence) => {
+      if (unique === uniqueSequence) {
+        this.off(`acknowledge`, onMessage);
+        clearInterval(interval);
+        this.connecting = false;
+        this.connected = true;
+        this.notifier.notify('connect');
+      }
+    };
+
+    this.on(`acknowledge`, onMessage);
+
+    this.send(Buffer.from(`cn${unique}`, 'utf-8'));
+    const interval = setInterval(connectFn, 100);
 
     this.timeout = setTimeout(() => {
       this.notifier.notify('disconnect');
+      this.connected = false;
+      clearInterval(this.pingInterval);
+      console.log('Disconnected');
     }, 3000);
   }
 
   send(message:Buffer) {
+    if (!this.connected && !this.connecting) return;
     const chance = Math.floor(Math.random() * 100);
     if (chance < this.networkMeta.percentageOutgoingDrop) return;
 
@@ -328,7 +414,24 @@ export class Connection {
   }
 
   dispatch(action: Outgoing, ...args) {
-    this.send(this.serializer.serialize(action, ...args));
+    this.send(this.serializer.serialize(action, false, null, ...args));
   }
 
+  dispatchUntilAcknowledge(action: Outgoing, ...args) {
+    const unique = this.uid.randomUUID(20);
+    this.send(this.serializer.serialize(action, false, unique, ...args));
+
+    const onMessage = (uniqueSequence) => {
+      if (unique === uniqueSequence) {
+        clearInterval(interval);
+        this.off(`acknowledge`, onMessage);
+      }
+    };
+
+    this.on(`acknowledge`, onMessage);
+
+    const interval = setInterval(() => {
+      this.send(this.serializer.serialize(action, true, unique, ...args));
+    }, 100);
+  }
 }

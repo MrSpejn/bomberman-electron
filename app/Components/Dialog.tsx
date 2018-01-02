@@ -1,3 +1,4 @@
+import { PendingMap } from './Root';
 import * as React from 'react';
 import { AppStore } from '../Store';
 
@@ -8,8 +9,9 @@ import {
 } from 'semantic-ui-react';
 
 export interface props {
-  onSubmit: ({ nick: string }) => void,
+  onSubmit: ({ nick: string, id: number }) => void,
   open: boolean,
+  maps: PendingMap[],
 }
 
 export interface state {
@@ -17,6 +19,7 @@ export interface state {
 }
 
 export class Dialog extends React.Component<props, state> {
+  input: HTMLInputElement;
   constructor(props) {
     super(props);
 
@@ -27,11 +30,11 @@ export class Dialog extends React.Component<props, state> {
     this.onSubmit = this.onSubmit.bind(this);
   }
 
-  onSubmit(event) {
+  onSubmit(event, id) {
     event.preventDefault();
-    const nick = event.target.nick.value;
+    const nick = this.input.value;
     if (nick) {
-      this.props.onSubmit({ nick });
+      this.props.onSubmit({ nick, id });
     } else {
       this.setState({ error: 'Niewłaściwa długość' });
     }
@@ -49,18 +52,35 @@ export class Dialog extends React.Component<props, state> {
             className='dialog__form'
             onSubmit={this.onSubmit}
           >
-            <h3 className='dialog__title'>Rozpocznij grę</h3>
             <Form.Field>
               <label>Nick:</label>
-              <input name='nick' />
+              <input
+                ref={(input) => { this.input = input }}
+                name='nick'
+              />
             </Form.Field>
             {this.state.error && (
               <Message negative>
                 {this.state.error}
               </Message>
             )}
+            <ul className="dialog__maps">
+              {this.props.maps.map((map) => (
+                <li className="dialog__map-record">
+                  <p>{map.name}</p>
+                  <p>{map.currentPlayers}/{map.maxPlayers}</p>
+                  <Form.Button
+                    onClick={(event) => this.onSubmit(event, map.id)}
+                  >
+                    Połącz
+                  </Form.Button>
+                </li>
+              ))}
+            </ul>
+            <h3 className='dialog__title'>Stwórz grę</h3>
+
             <div>
-              <Form.Button type='submit'>Połącz</Form.Button>
+              <Form.Button type='submit'>Stwórz</Form.Button>
             </div>
           </Form>
         </Modal.Content>
