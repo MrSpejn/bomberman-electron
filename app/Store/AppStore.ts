@@ -52,7 +52,6 @@ export class AppStore {
   constructor(connection: Connection) {
     this.connection = connection;
     connection.on('ping', action((ping) => {
-      console.log(ping);
       this.ping = <number>ping;
     }));
     connection.on('disconnect', action((ping) => {

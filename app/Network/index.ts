@@ -219,7 +219,7 @@ export class MessageSerializer {
       case Outgoing.BOMB:
         return this.serializeBomb(reconnect, unique, <Position> args[0]);
       case Outgoing.MOVE:
-        return this.serializeMove(<number> args[0], <Position> args[1]);
+        return this.serializeMove(<string> args[0]);
       case Outgoing.CREATE_GAME:
         return this.serializeCreateGame(reconnect, unique, <string> args[0]);
       case Outgoing.JOIN_GAME:
@@ -229,13 +229,9 @@ export class MessageSerializer {
     }
   }
 
-  serializeMove(playerId: number, position: Position) {
+  serializeMove(direction: string) {
     const buffer = Buffer.alloc(25);
-
-    buffer.write('mv', 0);
-    buffer.writeInt32LE(Math.floor(position.x), 2);
-    buffer.writeInt32LE(Math.floor(position.y), 6);
-
+    buffer.write(`mv${direction}`, 0);
     return buffer;
   }
 
